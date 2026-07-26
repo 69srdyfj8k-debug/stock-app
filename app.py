@@ -370,7 +370,7 @@ elif page == "📈 技術走勢圖表":
             margin=dict(l=20, r=20, t=40, b=20),
             hovermode="x unified",  # 將游標訊息統一合併顯示，操作感受大增
             xaxis_rangeslider_visible=False,
-            dragmode=False,  # 👈 停用滑鼠拉框 Zoom 功能
+            dragmode='pan',  # 👈 停用滑鼠拉框 Zoom 功能
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
 
