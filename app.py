@@ -31,9 +31,9 @@ config_mapping = {
     "15m": {"period": "7d", "interval": "15m"},
     "30m": {"period": "14d", "interval": "30m"},
     "1h":  {"period": "1mo", "interval": "1h"},
-    "1d":  {"period": "1y",  "interval": "1d"},
-    "1wk": {"period": "2y",  "interval": "1wk"},
-    "1mo": {"period": "5y",  "interval": "1mo"}
+    "1d":  {"period": "2y",  "interval": "1d"},
+    "1wk": {"period": "5y",  "interval": "1wk"},
+    "1mo": {"period": "max", "interval": "1mo"}  # 👈 改做 max，確保足夠數據計 50MA！
 }
 
 selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
