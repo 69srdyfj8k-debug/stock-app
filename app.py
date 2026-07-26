@@ -343,16 +343,17 @@ elif page == "📈 技術走勢圖表":
 
         # --- ⚙️ 圖表佈局與互動優化 ---
         
-        # 設定非交易日/休市自動過濾 (跳過週末空白)
-        rangebreaks_config = [dict(bounds=["sat", "mon"])] # 隱藏週末
+        # 💡 只有 15m, 30m, 1h, 1d 才啟用 rangebreaks，1mo / 1wk 唔啟用！
+        rangebreaks_config = []
         
-        # 如果是分步圖 (如 15m/1h)，亦可隱藏夜盤/休市空隙
-        if 'm' in selected_config['interval'] or 'h' in selected_config['interval']:
-            rangebreaks_config.append(dict(bounds=[16, 9.5], pattern="hour")) # 跳過非交易時段
-
+        if selected_config['interval'] in ['15m', '30m', '1h', '1d']:
+            rangebreaks_config.append(dict(bounds=["sat", "mon"])) # 跳過週末
+            if 'm' in selected_config['interval'] or 'h' in selected_config['interval']:
+                rangebreaks_config.append(dict(bounds=[16, 9.5], pattern="hour")) # 跳過非交易時段
+        
         fig.update_xaxes(
             type='date',
-            rangebreaks=rangebreaks_config,
+            rangebreaks=rangebreaks_config,  # 👈 帶入條件判斷後嘅 config
             gridcolor='rgba(255, 255, 255, 0.1)',
             row=2, col=1
         )
