@@ -16,6 +16,7 @@ st.sidebar.header("⚙️ 參數設定")
 # 統一使用 symbol 變數，並放入側邊欄
 symbol = st.sidebar.text_input("輸入股票代號 (如 AAPL, TSLA, 0700.HK):", value="TSLA").upper()
 required_margin = st.sidebar.slider("期望安全邊際 (Margin of Safety %):", 5, 40, 20) / 100
+st.sidebar.caption("💡 說明：預留嘅折讓幅度，用嚟降低估值出錯嘅買入風險。")
 
 time_frame = st.sidebar.selectbox(
     "選擇分析時間週期 (Timeframe):",
