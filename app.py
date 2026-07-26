@@ -12,11 +12,10 @@ page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞彙整與提問
 
 st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
-col_search, col_margin = st.columns([2, 1])
-with col_search:
-    ticker_symbol = st.text_input("輸入股票代號 (美股如 AAPL / NVDA，港股如 0005.HK / 9988.HK):", "AAPL").upper()
-with col_margin:
-    required_margin = st.slider("期望安全邊際 (Margin of Safety %):", 5, 40, 20) / 100
+
+# 統一使用 symbol 變數，並放入側邊欄
+symbol = st.sidebar.text_input("輸入股票代號 (如 AAPL, TSLA, 0700.HK):", value="TSLA").upper()
+required_margin = st.sidebar.slider("期望安全邊際 (Margin of Safety %):", 5, 40, 20) / 100
 
 time_frame = st.sidebar.selectbox(
     "選擇分析時間週期 (Timeframe):",
