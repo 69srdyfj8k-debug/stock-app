@@ -3,8 +3,19 @@ import yfinance as yf
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import date
+from openai import OpenAI
 
 st.set_page_config(page_title="智能股票分析 Dashboard", layout="wide")
+
+# --- 初始化 DeepSeek Client ---
+deepseek_api_key = st.secrets.get("DEEPSEEK_API_KEY")
+ai_client = None
+if deepseek_api_key:
+    # DeepSeek 兼容 OpenAI SDK，只需指定 base_url
+    ai_client = OpenAI(
+        api_key=deepseek_api_key,
+        base_url="https://api.deepseek.com"
+    )
 
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
@@ -14,7 +25,6 @@ st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
 symbol = st.sidebar.text_input("輸入股票代號 (例如: AAPL, TSLA, 0700.HK):", value="TSLA")
 
-# 全局時間週期選擇器
 time_frame = st.sidebar.selectbox(
     "選擇分析時間週期 (Timeframe):",
     options=[
@@ -25,10 +35,9 @@ time_frame = st.sidebar.selectbox(
         "1 週 (1wk)",
         "1 個月 (1mo)"
     ],
-    index=0  # 預設 15m
+    index=3  # 預設 1d
 )
 
-# 映射 yfinance 參數
 time_map = {
     "15 分鐘 (15m)": {"period": "1mo", "interval": "15m"},
     "30 分鐘 (30m)": {"period": "1mo", "interval": "30m"},
@@ -77,15 +86,6 @@ if is_weekend:
 elif last_data_date and last_data_date < today:
     st.info(f"📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_data_date}`。")
 
-# --- 頂部提示 2：Timeframe 指引 ---
-with st.expander("💡 **【小白指南】不同時間週期 (Timeframe) 的 AI 建議不一樣，該怎麼看？**", expanded=False):
-    st.markdown("""
-    * 🎯 **核心原則**：**「大週期 (1d) 定方向，小週期 (15m/30m) 找買點」**。
-    * 🧭 **步驟 1（看大方向）**：先切換至 **`1 天 (1d)`**。如果 1d 顯示 **🟢 偏多**，代表中長期大趨勢健康。
-    * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
-    * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！
-    """)
-
 # ==========================================
 # 📄 第一頁：總覽與 AI 決策
 # ==========================================
@@ -94,7 +94,6 @@ if page == "📊 總覽與 AI 決策":
     st.caption(f"⏱️ 當前分析時間維度：**{time_frame}**")
 
     if not df.empty:
-        # 基本面
         company_name = info.get('longName', symbol)
         sector = info.get('sector', 'N/A')
         market_cap = info.get('marketCap', 0)
@@ -113,7 +112,6 @@ if page == "📊 總覽與 AI 決策":
 
         st.divider()
 
-        # 核心 Metrics
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("最新價格", f"${latest_close:.2f}", f"{price_change:+.2f} ({pct_change:+.2f}%)")
         col2.metric("20MA (短期支持)", f"${ma20_val:.2f}")
@@ -123,7 +121,7 @@ if page == "📊 總覽與 AI 決策":
         st.divider()
 
         # AI 操盤手評估
-        st.subheader(f"🤖 AI 操盤手：綜合入場及買賣評估 ({time_frame})")
+        st.subheader(f"🤖 AI 操盤手：技術面評估 ({time_frame})")
 
         score = 0
         reasons = []
@@ -157,8 +155,10 @@ if page == "📊 總覽與 AI 決策":
 
         st.divider()
 
-        # 4. 💬 AI 提問對話框（智能邏輯升級）
-        st.subheader("💬 股票 AI 提問助手")
+        # 4. 💬 DeepSeek AI 提問對話框
+        st.subheader("💬 股票與市場動態 AI 助手 (Powered by DeepSeek)")
+        st.caption("💡 你可以用廣東話問：`嚟緊有咩消息會影響呢隻股？` / `分析下佢最新嘅利好同利淡因素`")
+
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
@@ -166,47 +166,46 @@ if page == "📊 總覽與 AI 決策":
             with st.chat_message(message["role"]):
                 st.write(message["content"])
 
-        if user_prompt := st.chat_input("想問這隻股票什麼問題？（例如：止損設在哪？最高可以到多少？）："):
+        if user_prompt := st.chat_input("想問呢隻股票咩問題？（例如新聞、消息面或走勢）："):
             st.session_state.messages.append({"role": "user", "content": user_prompt})
             with st.chat_message("user"):
                 st.write(user_prompt)
 
             with st.chat_message("assistant"):
-                prompt_lower = user_prompt.lower()
-                
-                # 智能動態回答邏輯
-                if "最高" in user_prompt or "目標" in user_prompt or "target" in prompt_lower:
-                    response = (
-                        f"🤖 **AI 分析【目標價與阻力位】**：\n\n"
-                        f"- 在當前 `{time_frame}` 維度下，近期最高點阻力位在 **${high_period:.2f}**。\n"
-                        f"- 52 週歷史最高價為 **${week_52_high}**。\n"
-                        f"💡 **建議**：若股價向上突破 `${high_period:.2f}`，上方空間才會打開；若接近該位置未突破，宜留意獲利了結。"
-                    )
-                elif "止損" in user_prompt or "最低" in user_prompt or "stop loss" in prompt_lower:
-                    response = (
-                        f"🤖 **AI 分析【防守與止損位】**：\n\n"
-                        f"- **短期關鍵防守 (20MA)**：**${ma20_val:.2f}**\n"
-                        f"- **中期最後止損 (50MA)**：**${ma50_val:.2f}**\n"
-                        f"- 在當前 `{time_frame}` 區間最低點為 **${low_period:.2f}**。\n"
-                        f"💡 **建議**：若收盤價跌破 `${ma50_val:.2f}`，代表趨勢轉弱，建議嚴格執行止損避險。"
-                    )
-                elif "timeframe" in prompt_lower or "週期" in user_prompt or "時間" in user_prompt:
-                    response = (
-                        f"🤖 **AI 分析【Timeframe 選擇指引】**：\n\n"
-                        f"- 建議**以 `1天 (1d)` 確定總體趨勢**（看是大升市還是跌市）。\n"
-                        f"- 再用 **`15分鐘 (15m)` / `30分鐘 (30m)`** 來抓精準的進場買點。\n"
-                        f"- 當前你正在查看 **`{time_frame}`** 維度。"
-                    )
+                if ai_client:
+                    system_instructions = f"""
+                    你是一個專業、接地氣且客觀的股市分析師，請用廣東話（繁體中文，口吻專業生動）回答。
+                    
+                    當前分析股票數據：
+                    - 代號/名稱：{symbol} ({company_name})
+                    - 當前時間週期：{time_frame}
+                    - 最新價：${latest_close:.2f}
+                    - 20MA：${ma20_val:.2f} | 50MA：${ma50_val:.2f}
+                    - RSI (14)：{latest_rsi:.1f}
+                    - 52週高低：${week_52_low} - ${week_52_high}
+
+                    請結合以上技術數據，並著重從【消息面、市場催化劑、利好與利淡因素、潛在風險】等維度回答用戶問題。
+                    明確提醒用戶：AI 建議僅供參考，不構成投資建議。
+                    """
+
+                    messages_for_api = [
+                        {"role": "system", "content": system_instructions},
+                        {"role": "user", "content": user_prompt}
+                    ]
+
+                    try:
+                        with st.spinner("DeepSeek 正在分析市場數據與消息中..."):
+                            response_obj = ai_client.chat.completions.create(
+                                model="deepseek-chat",
+                                messages=messages_for_api,
+                                temperature=0.7
+                            )
+                            response = response_obj.choices[0].message.content
+                    except Exception as e:
+                        response = f"⚠️ DeepSeek API 調用失敗：{str(e)}"
                 else:
-                    response = (
-                        f"🤖 **AI 綜合解答**（關於 **{symbol}** 在 `{time_frame}`）：\n\n"
-                        f"- **最新價格**：${latest_close:.2f}\n"
-                        f"- **20MA 支持**：${ma20_val:.2f} | **50MA 支持**：${ma50_val:.2f}\n"
-                        f"- **RSI 強弱度**：{latest_rsi:.1f}\n\n"
-                        f"針對你的問題「*{user_prompt}*」：\n"
-                        f"目前在 `{time_frame}` 維度下，核心觀察點在於股價能否站穩 20MA (`${ma20_val:.2f}`)。若維持在 20MA 之上則走勢仍偏健康。"
-                    )
-                
+                    response = "⚠️ 未設定 `DEEPSEEK_API_KEY`，請先喺 Streamlit Secrets 設定 Key。"
+
                 st.write(response)
                 st.session_state.messages.append({"role": "assistant", "content": response})
 
