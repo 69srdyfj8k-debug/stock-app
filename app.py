@@ -157,6 +157,8 @@ if page == "📊 總覽、新聞彙整與提問":
                 
             # 判定條件 2: 財務健康
             health_ok = True
+            roe_display = f"{roe * 100:.1f}%" if roe is not None else "N/A"
+            
             if roe and roe > 0.15:
                 reasons.append(f"✅ ROE ({roe*100:.1f}%) 表現優秀 ( > 15%)，具備高資本回報率/護城河。")
             else:
