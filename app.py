@@ -360,7 +360,8 @@ elif page == "📈 技術走勢圖表":
         
         fig.update_yaxes(
             gridcolor='rgba(255, 255, 255, 0.1)',
-            fixedrange=True  # 👈 鎖定 Y 軸！上下拖曳唔會再飛走，只保留 X 軸左右平移
+            autorange=True,
+            fixedrange=False  # 👈 鎖定 Y 軸！上下拖曳唔會再飛走，只保留 X 軸左右平移
 )
 
         # 全局風格：設定十字準星 (Crosshair) & 隱藏下方的 RangeSlider (讓版面更大更順手)
