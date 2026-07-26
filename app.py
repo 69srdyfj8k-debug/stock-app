@@ -51,14 +51,12 @@ if not df.empty:
         name='K線'
     )])
     fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 else:
     st.error("無法抓取數據，請檢查股票代號或該時間週期是否有交易資料。")
 
----
-
 # --- 2. 新增 AI / 問題問答區塊 ---
-st.markdown("---")
+st.divider()  # 改用呢個畫分隔線！
 st.subheader("💬 股票 AI 問答 / 筆記助手")
 
 # 初始化對話歷史 (Session State)
@@ -71,14 +69,12 @@ for message in st.session_state.messages:
         st.write(message["content"])
 
 # 輸入框
-if user_prompt := st.chat_input("輸入關於這隻股票的問題（例如：這隻股票最近趨勢如何？）："):
-    # 顯示使用者發送的訊息
+if user_prompt := st.chat_input("輸入關於這隻股票的問題："):
     st.session_state.messages.append({"role": "user", "content": user_prompt})
     with st.chat_message("user"):
         st.write(user_prompt)
 
-    # 模擬/自動生成回答區域
     with st.chat_message("assistant"):
-        response = f"🤖 分析中：關於 **{symbol}** 的問題「{user_prompt}」。目前的最新收盤價為 ${df['Close'].iloc[-1]:.2f}。"
+        response = f"🤖 分析中：關於 **{symbol}** 的問題「{user_prompt}」。"
         st.write(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
