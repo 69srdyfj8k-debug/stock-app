@@ -128,37 +128,57 @@ if page == "📊 總覽、新聞彙整與提問":
 
         st.divider()
 
-        # ⚡ 豐富的量化技術面信號與深入解析
-        st.subheader(f"⚡ 量化技術面信號與深度評析 ({time_frame})")
-        score = 0
+        # --- 2. 核心：入手決策 logic (Decision Engine) ---
+        st.subheader("💡 入手決策與估值分析")
+        
+        buy_signal = "觀望 (Hold / Wait)"
+        signal_color = "orange"
         reasons = []
-
-        if latest_close > ma20_val > ma50_val:
-            score += 2
-            reasons.append(f"多頭排列：現價 (${latest_close:.2f}) 穩居 20MA 及 50MA 上方，短中期趨勢強勢。")
-        elif latest_close < ma20_val < ma50_val:
-            score -= 2
-            reasons.append(f"空頭排列：現價 (${latest_close:.2f}) 低於 20MA 及 50MA，短期走勢偏弱。")
+        
+        if target_mean_price:
+            fair_value = target_mean_price
+            max_buy_price = fair_value * (1 - required_margin)
+            
+            # 判定條件 1: 價格折讓
+            if current_price <= max_buy_price:
+                price_ok = True
+                reasons.append(f"✅ 現價 (${current_price:.2f}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
+            else:
+                price_ok = False
+                reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
+                
+            # 判定條件 2: 財務健康
+            health_ok = True
+            if roe and roe > 0.15:
+                reasons.append(f"✅ ROE ({roe*100:.1f}%) 表現優秀 ( > 15%)，具備高資本回報率/護城河。")
+            else:
+                health_ok = False
+                reasons.append(f"⚠️ ROE ({roe*100:.1f}% if roe else 'N/A') 偏低，需注意企業獲利能力。")
+                
+            if fcf and fcf > 0:
+                reasons.append("✅ 自由現金流 (FCF) 為正，財務狀況健康。")
+            else:
+                reasons.append("⚠️ 自由現金流偏弱或為負，營運風險較高。")
+                
+            # 綜合訊號判定
+            if price_ok and health_ok:
+                buy_signal = "🟢 考慮入手 (Buy Candidate)"
+                signal_color = "green"
+            elif price_ok and not health_ok:
+                buy_signal = "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)"
+                signal_color = "gold"
+            else:
+                buy_signal = "🔴 建議觀望 / 暫不入手 (Overvalued / Wait for Dip)"
+                signal_color = "red"
+                
+            st.markdown(f"### 綜合評估訊號： :{signal_color}[**{buy_signal}**]")
+            st.write(f"**估算合理價 (Fair Value)**: ${fair_value:.2f} | **建議最大買入價 (Max Buy Price)**: ${max_buy_price:.2f}")
+            
+            with st.expander("🔍 觀看詳細分析理由", expanded=True):
+                for reason in reasons:
+                    st.write(reason)
         else:
-            reasons.append(f"均線糾結：股價穿梭於均線之間，屬於震盪整理格局。")
-
-        if latest_rsi > 70:
-            score -= 1
-            reasons.append(f"RSI 超買區 ({latest_rsi:.1f})：動能過熱，小心短期技術性回吐。")
-        elif latest_rsi < 30:
-            score += 1
-            reasons.append(f"RSI 超賣區 ({latest_rsi:.1f})：拋壓過重，隨時有超跌反彈機會。")
-        else:
-            reasons.append(f"RSI 中性區 ({latest_rsi:.1f})：多空交鋒平衡，未見極端情緒。")
-
-        if score >= 2:
-            st.success("綜合技術評級：強勢看好 (Bullish)\n\n" + "\n".join([f"- {r}" for r in reasons]))
-        elif score <= -2:
-            st.error("綜合技術評級：弱勢警惕 (Bearish)\n\n" + "\n".join([f"- {r}" for r in reasons]))
-        else:
-            st.info("綜合技術評級：中性震盪 (Neutral)\n\n" + "\n".join([f"- {r}" for r in reasons]))
-
-        st.divider()
+            st.info("暫無足夠估值數據進行自動買入判定。")
 
         # ==========================================
         # 📰 新聞分類彙整 + 自動 Conclusion 結語
