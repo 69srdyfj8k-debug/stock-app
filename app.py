@@ -44,6 +44,10 @@ info = stock.info
 df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
 df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
 
+# --- 計算指標 ---
+df['MA20'] = df['Close'].rolling(20).mean()
+df['MA50'] = df['Close'].rolling(50).mean()
+
 # 💡 確保 df 抓到數據後，將 Index 轉為 Datetime 格式
 if not df.empty:
     df.index = pd.to_datetime(df.index)
