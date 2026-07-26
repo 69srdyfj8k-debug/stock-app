@@ -154,14 +154,6 @@ if page == "📊 總覽、新聞彙整與提問":
             else:
                 price_ok = False
                 reasons.append(f"⚠️ 現價 (${current_price}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
-
-            # 判定條件 1: 價格折讓
-            if current_price <= max_buy_price:
-                price_ok = True
-                reasons.append(f"✅ 現價 (${current_price}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
-            else:
-                price_ok = False
-                reasons.append(f"⚠️ 現價 (${current_price}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
     
                 
             # 判定條件 2: 財務健康
@@ -195,7 +187,7 @@ if page == "📊 總覽、新聞彙整與提問":
             
             with st.expander("🔍 觀看詳細分析理由", expanded=True):
                 for reason in reasons:
-                    st.write(reason)
+                    st.markdown(f"- {reason}")
         else:
             st.info("暫無足夠估值數據進行自動買入判定。")
 
