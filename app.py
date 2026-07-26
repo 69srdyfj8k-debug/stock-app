@@ -136,23 +136,44 @@ if page == "📊 總覽與實時消息":
 
         st.divider()
 
-        # 2. 自動抓取最新財經新聞（Yahoo Finance）
+        # 2. 自動抓取最新財經新聞（Yahoo Finance 兼容修正）
         st.subheader("📰 最新實時新聞與催化劑")
         try:
             news_list = stock.news
             if news_list:
-                for item in news_list[:5]:  # 顯示最新 5 則
-                    title = item.get('title')
-                    publisher = item.get('publisher')
-                    link = item.get('link')
-                    st.markdown(f"• **[{title}]({link})** — *{publisher}*")
+                count = 0
+                for item in news_list:
+                    # 兼容 yfinance 新舊資料結構
+                    content = item.get('content', item) if isinstance(item, dict) else item
+                    
+                    title = content.get('title')
+                    provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
+                    
+                    # 取得連結
+                    click_url = None
+                    if 'canonicalUrl' in content and isinstance(content['canonicalUrl'], dict):
+                        click_url = content['canonicalUrl'].get('url')
+                    elif 'clickThroughUrl' in content and isinstance(content['clickThroughUrl'], dict):
+                        click_url = content['clickThroughUrl'].get('url')
+                    elif 'link' in content:
+                        click_url = content.get('link')
+
+                    if title:
+                        if click_url:
+                            st.markdown(f"• **[{title}]({click_url})** — *{provider}*")
+                        else:
+                            st.markdown(f"• **{title}** — *{provider}*")
+                        count += 1
+                    
+                    if count >= 5:  # 最多顯示 5 則
+                        break
+                        
+                if count == 0:
+                    st.write("暫無新聞標題數據。")
             else:
                 st.write("暫無最新新聞數據。")
-        except Exception:
+        except Exception as e:
             st.write("無法讀取實時新聞。")
-
-    else:
-        st.error("無法抓取數據，請檢查股票代號。")
 
 # ==========================================
 # 📈 第二頁：技術走勢圖表
