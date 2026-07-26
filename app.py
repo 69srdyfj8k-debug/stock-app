@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 from datetime import date
 import pandas as pd
 
-st.set_page_config(page_title="智能股票與市場動態 Dashboard", layout="wide")
+st.set_page_config(page_title="智能股票與市場動態", layout="wide")
 
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
@@ -19,29 +19,24 @@ symbol = st.sidebar.text_input("輸入股票代號 (如 AAPL, TSLA, 0700.HK):", 
 required_margin = st.sidebar.slider("期望安全邊際 (Margin of Safety %):", 5, 40, 20) / 100
 st.sidebar.caption("💡 說明：預留嘅折讓幅度，用嚟降低估值出錯嘅買入風險。")
 
-time_frame = st.sidebar.selectbox(
-    "選擇分析時間週期 (Timeframe):",
-    options=[
-        "15 分鐘 (15m)",
-        "30 分鐘 (30m)",
-        "1 小時 (1h)",
-        "1 天 (1d)",
-        "1 週 (1wk)",
-        "1 個月 (1mo)"
-    ],
-    index=3  # 預設 1d
+# 📱 手機友善：用橫向可滑動/點擊嘅 Pills 替代傳統 下拉選單 (Dropdown)
+time_frame = st.pills(
+    "⏱️ 選擇時間週期",
+    options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
+    default="1d"
 )
 
-time_map = {
-    "15 分鐘 (15m)": {"period": "1mo", "interval": "15m"},
-    "30 分鐘 (30m)": {"period": "1mo", "interval": "30m"},
-    "1 小時 (1h)":   {"period": "2mo", "interval": "1h"},
-    "1 天 (1d)":     {"period": "1y",  "interval": "1d"},
-    "1 週 (1wk)":    {"period": "2y",  "interval": "1wk"},
-    "1 個月 (1mo)":  {"period": "5y",  "interval": "1mo"}
+# 💡 如果你原本程式有用到 selected_config 字典，可以順便對應返：
+config_mapping = {
+    "15m": {"period": "7d", "interval": "15m"},
+    "30m": {"period": "14d", "interval": "30m"},
+    "1h":  {"period": "1mo", "interval": "1h"},
+    "1d":  {"period": "1y",  "interval": "1d"},
+    "1wk": {"period": "2y",  "interval": "1wk"},
+    "1mo": {"period": "5y",  "interval": "1mo"}
 }
 
-selected_config = time_map[time_frame]
+selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
 
 # --- 抓取數據 ---
 stock = yf.Ticker(symbol)
