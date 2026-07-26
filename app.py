@@ -49,11 +49,9 @@ info = stock.info
 df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
 df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
 
-# 如果時間係在欄位（例如叫 'Datetime' 或 'Date'）
-df['Datetime'] = pd.to_datetime(df['Datetime'])
-
-# 如果時間係 Index
-df.index = pd.to_datetime(df.index)
+# 💡 確保 df 抓到數據後，將 Index 轉為 Datetime 格式
+if not df.empty:
+    df.index = pd.to_datetime(df.index)
 
 # --- 計算技術指標 ---
 if not df.empty:
