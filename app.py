@@ -135,28 +135,28 @@ if page == "📊 總覽、新聞彙整與提問":
 
         if latest_close > ma20_val > ma50_val:
             score += 2
-            reasons.append(f"✅ **多頭排列**：現價 (${latest_close:.2f}) 穩居 20MA 及 50MA 上方，短中期趨勢強勢。")
+            reasons.append(f"多頭排列：現價 (${latest_close:.2f}) 穩居 20MA 及 50MA 上方，短中期趨勢強勢。")
         elif latest_close < ma20_val < ma50_val:
             score -= 2
-            reasons.append(f"❌ **空頭排列**：現價 (${latest_close:.2f}) 低於 20MA 及 50MA，短期走勢偏弱。")
+            reasons.append(f"空頭排列：現價 (${latest_close:.2f}) 低於 20MA 及 50MA，短期走勢偏弱。")
         else:
-            reasons.append(f"⚠️ **均線糾結**：股價穿梭於均線之間，屬於震盪整理格局。")
+            reasons.append(f"均線糾結：股價穿梭於均線之間，屬於震盪整理格局。")
 
         if latest_rsi > 70:
             score -= 1
-            reasons.append(f"⚠️ **RSI 超買區 ({latest_rsi:.1f})**：動能過熱，小心短期技術性回吐。")
+            reasons.append(f"RSI 超買區 ({latest_rsi:.1f})：動能過熱，小心短期技術性回吐。")
         elif latest_rsi < 30:
             score += 1
-            reasons.append(f"🎯 **RSI 超賣區 ({latest_rsi:.1f})**：拋壓過重，隨時有超跌反彈機會。")
+            reasons.append(f"RSI 超賣區 ({latest_rsi:.1f})：拋壓過重，隨時有超跌反彈機會。")
         else:
-            reasons.append(f"⚖️ **RSI 中性區 ({latest_rsi:.1f})**：多空交鋒平衡，未見極端情緒。")
+            reasons.append(f"RSI 中性區 ({latest_rsi:.1f})：多空交鋒平衡，未見極端情緒。")
 
         if score >= 2:
-            st.success("🟢 **綜合技術評級：強勢看好 (Bullish)**\n\n" + "\n".join([f"- {r}" for r in reasons]))
+            st.success("綜合技術評級：強勢看好 (Bullish)\n\n" + "\n".join([f"- {r}" for r in reasons]))
         elif score <= -2:
-            st.error("🔴 **綜合技術評級：弱勢警惕 (Bearish)**\n\n" + "\n".join([f"- {r}" for r in reasons]))
+            st.error("綜合技術評級：弱勢警惕 (Bearish)\n\n" + "\n".join([f"- {r}" for r in reasons]))
         else:
-            st.info("🟡 **綜合技術評級：中性震盪 (Neutral)**\n\n" + "\n".join([f"- {r}" for r in reasons]))
+            st.info("綜合技術評級：中性震盪 (Neutral)\n\n" + "\n".join([f"- {r}" for r in reasons]))
 
         st.divider()
 
@@ -165,7 +165,7 @@ if page == "📊 總覽、新聞彙整與提問":
         # ==========================================
         st.subheader("📰 實時新聞 Grouping 與智能市場結語 (Conclusion)")
 
-        news_conclusion = "📌 **市場焦點總結**：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
+        news_conclusion = "市場焦點總結：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
         if news_count > 0:
             for category, items in grouped_news.items():
                 if items:
@@ -179,11 +179,11 @@ if page == "📊 總覽、新聞彙整與提問":
             st.markdown("")
             
             if len(grouped_news["🎯 大行評級與目標價"]) > 0:
-                news_conclusion = f"🎯 **市場焦點總結**：近期市場集中關注該股嘅**大行評級與目標價變動**，機構觀點對股價方向具備較大引導作用。"
+                news_conclusion = f"市場焦點總結：近期市場集中關注該股嘅大行評級與目標價變動，機構觀點對股價方向具備較大引導作用。"
             elif len(grouped_news["💰 業績與財務數據"]) > 0:
-                news_conclusion = f"💰 **市場焦點總結**：近期新聞主要圍繞**業績與交付數據**，財報表現係短期股價波動嘅核心催化劑。"
+                news_conclusion = f"市場焦點總結：近期新聞主要圍繞業績與交付數據，財報表現係短期股價波動嘅核心催化劑。"
             elif len(grouped_news["⚖️ 宏觀政策與法規"]) > 0:
-                news_conclusion = f"⚖️ **市場焦點總結**：近期受到**宏觀政策、利率或法律訴訟**等消息影響，投資者需提防系統性風險。"
+                news_conclusion = f"市場焦點總結：近期受到宏觀政策、利率或法律訴訟等消息影響，投資者需提防系統性風險。"
 
             st.info(news_conclusion)
         else:
@@ -192,7 +192,7 @@ if page == "📊 總覽、新聞彙整與提問":
         st.divider()
 
         # ==========================================
-        # 💬 本地智能提問助手（完整保留你原先的小白提示與對話格式）
+        # 💬 本地智能提問助手（原汁原味小白提示）
         # ==========================================
         st.subheader("💬 本地分析摘要")
         st.markdown(f"* **現價**：${latest_close:.2f} ({pct_change:+.2f}%)")
@@ -215,21 +215,21 @@ if page == "📊 總覽、新聞彙整與提問":
             
             if any(k in q for k in ["入市", "買", "撈底", "睇好", "投資", "上車", "好唔好"]):
                 if latest_close > ma20_val:
-                    response = f"💡 **入市分析**：現價 **${latest_close:.2f}** 企喺短期 20MA (**${ma20_val:.2f}**) 上方，且 RSI 處於 **{latest_rsi:.1f}**。短線技術面偏向正面，但若追高需注意設好防守位。"
+                    response = f"入市分析：現價 **${latest_close:.2f}** 企喺短期 20MA (**${ma20_val:.2f}**) 上方，且 RSI 處於 **{latest_rsi:.1f}**。短線技術面偏向正面，但若追高需注意設好防守位。"
                 else:
-                    response = f"💡 **入市分析**：現價 **${latest_close:.2f}** 目前低於短期 20MA (**${ma20_val:.2f}**)，走勢偏弱。建議等股價重新企穩均線或 RSI 跌至超賣區時再考慮部署。"
+                    response = f"入市分析：現價 **${latest_close:.2f}** 目前低於短期 20MA (**${ma20_val:.2f}**)，走勢偏弱。建議等股價重新企穩均線或 RSI 跌至超賣區時再考慮部署。"
             elif any(k in q for k in ["現價", "幾錢", "價格", "收市"]):
-                response = f"📊 **{symbol}** 最新收市價為 **${latest_close:.2f}**（升跌幅：{pct_change:+.2f}%）。"
+                response = f"{symbol} 最新收市價為 **${latest_close:.2f}**（升跌幅：{pct_change:+.2f}%）。"
             elif any(k in q for k in ["支持", "20ma", "ma20"]):
-                response = f"🎯 短期支持位參考 20MA（**${ma20_val:.2f}**）；中期 50MA 支援在（**${ma50_val:.2f}**）。"
+                response = f"短期支持位參考 20MA（**${ma20_val:.2f}**）；中期 50MA 支援在（**${ma50_val:.2f}**）。"
             elif any(k in q for k in ["止損", "走", "風險", "沽"]):
-                response = f"🛡️ 風險防守位可設在中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**）。"
+                response = f"風險防守位可設在中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**）。"
             elif any(k in q for k in ["rsi", "指標", "超買", "超賣"]):
-                response = f"📉 目前 RSI(14) 數值為 **{latest_rsi:.1f}**（>70 為超買，<30 為超賣）。"
+                response = f"目前 RSI(14) 數值為 **{latest_rsi:.1f}**（>70 為超買，<30 為超賣）。"
             elif any(k in q for k in ["新聞", "消息", "動態", "結語"]):
                 response = f"{news_conclusion}"
             else:
-                response = f"🤖 **本地分析摘要**：\n- 現價：${latest_close:.2f} ({pct_change:+.2f}%)\n- 趨勢指標：20MA = {ma20_val:.2f} | 50MA = {ma50_val:.2f}\n- 動能指標：RSI = {latest_rsi:.1f}\n你可以試下問：`現價`、`支持位`、`止損` 或 `新聞` ！"
+                response = f"本地分析摘要：\n- 現價：${latest_close:.2f} ({pct_change:+.2f}%)\n- 趨勢指標：20MA = {ma20_val:.2f} | 50MA = {ma50_val:.2f}\n- 動能指標：RSI = {latest_rsi:.1f}  你可以試下問：`現價`、`支持位`、`止損` 或 `新聞` ！"
 
             with st.chat_message("assistant"):
                 st.write(response)
