@@ -8,7 +8,7 @@ st.set_page_config(page_title="智能股票與市場動態 Dashboard", layout="w
 
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
-page = st.sidebar.radio("選擇頁面：", ["📊 總覽、自動分析與提問", "📈 技術走勢圖表"])
+page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞彙整與提問", "📈 技術走勢圖表"])
 
 st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
@@ -65,35 +65,44 @@ if not df.empty:
     high_period = df['High'].max()
     low_period = df['Low'].min()
 
-# --- 收集並自動分類新聞 ---
-news_snippets = []
+# --- 收集並將新聞 Group 埋一齊 + 自動生成 Conclusion ---
+grouped_news = {
+    "💰 業績與財務數據": [],
+    "🎯 大行評級與目標價": [],
+    "⚖️ 宏觀政策與法規": [],
+    "📌 一般市場動態": []
+}
+
+news_count = 0
 try:
-    for item in stock.news[:5]:
+    for item in stock.news[:6]:
         content = item.get('content', item) if isinstance(item, dict) else item
         title = content.get('title')
         provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
         click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
         
         if title:
-            # 本地關鍵字自動標籤分類
+            news_count += 1
             t_lower = title.lower()
-            tag = "📌 一般動態"
-            if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps"]):
-                tag = "💰 業績與數據"
-            elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst"]):
-                tag = "🎯 大行評級"
-            elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff"]):
-                tag = "⚖️ 宏觀與政策"
-            
-            news_snippets.append({"title": title, "publisher": provider, "url": click_url, "tag": tag})
+            if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps", "sales"]):
+                grouped_news["💰 業績與財務數據"].append({"title": title, "publisher": provider, "url": click_url})
+            elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst", "outperform", "overweight"]):
+                grouped_news["🎯 大行評級與目標價"].append({"title": title, "publisher": provider, "url": click_url})
+            elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff", "court", "ban"]):
+                grouped_news["⚖️ 宏觀政策與法規"].append({"title": title, "publisher": provider, "url": click_url})
+            else:
+                grouped_news["📌 一般市場動態"].append({"title": title, "publisher": provider, "url": click_url})
 except Exception:
     pass
 
 # ==========================================
-# 📄 第一頁：總覽、自動分析與提問
+# 📄 第一頁：總覽、新聞彙整與提問
 # ==========================================
-if page == "📊 總覽、自動分析與提問":
-    st.title(f"📊 {symbol} 股票總覽與本地智慧分析")
+if page == "📊 總覽, 新聞彙整與提問":
+    pass # 佔位防錯
+
+if page == "📊 總覽、新聞彙整與提問":
+    st.title(f"📊 {symbol} 股票總覽與智能市場彙整")
 
     if not df.empty:
         company_name = info.get('longName', symbol)
@@ -127,7 +136,6 @@ if page == "📊 總覽、自動分析與提問":
         score = 0
         reasons = []
 
-        # 均線分析
         if latest_close > ma20_val > ma50_val:
             score += 2
             reasons.append(f"✅ **多頭排列**：現價 (${latest_close:.2f}) 穩居 20MA 及 50MA 上方，短中期趨勢強勢。")
@@ -137,7 +145,6 @@ if page == "📊 總覽、自動分析與提問":
         else:
             reasons.append(f"⚠️ **均線糾結**：股價穿梭於均線之間，屬於震盪整理格局。")
 
-        # RSI 分析
         if latest_rsi > 70:
             score -= 1
             reasons.append(f"⚠️ **RSI 超買區 ({latest_rsi:.1f})**：動能過熱，小心短期技術性回吐。")
@@ -147,7 +154,6 @@ if page == "📊 總覽、自動分析與提問":
         else:
             reasons.append(f"⚖️ **RSI 中性區 ({latest_rsi:.1f})**：多空交鋒平衡，未見極端情緒。")
 
-        # 綜合評分顯示
         if score >= 2:
             st.success("🟢 **綜合技術評級：強勢看好 (Bullish)**\n\n" + "\n".join([f"- {r}" for r in reasons]))
         elif score <= -2:
@@ -157,16 +163,37 @@ if page == "📊 總覽、自動分析與提問":
 
         st.divider()
 
-        # 📰 智能分類的新聞清單
-        st.subheader("📰 最新實時新聞與自動分類解讀")
-        if news_snippets:
-            st.caption("系統已自動提取並為以下新聞進行屬性標籤：")
-            for item in news_snippets:
-                badge = f"`{item['tag']}`"
-                if item["url"]:
-                    st.markdown(f"• {badge} **[{item['title']}]({item['url']})** — *{item['publisher']}*")
-                else:
-                    st.markdown(f"• {badge} **{item['title']}** — *{item['publisher']}*")
+        # ==========================================
+        # 📰 新聞分類彙整 + 自動 Conclusion 結語
+        # ==========================================
+        st.subheader("📰 實時新聞 Grouping 與智能市場結語 (Conclusion)")
+
+        if news_count > 0:
+            # 1. 顯示分類 Group 好的新聞
+            for category, items in grouped_news.items():
+                if items:
+                    with st.expander(f"{category} ({len(items)} 條)", expanded=True):
+                        for item in items:
+                            if item["url"]:
+                                st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
+                            else:
+                                st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
+
+            st.markdown("")
+            
+            # 2. 自動生成小結 (Conclusion)
+            active_cats = [cat.replace("💰 ", "").replace("🎯 ", "").replace("⚖️ ", "").replace("📌 ", "") for cat, items in grouped_news.items() if items]
+            
+            if len(grouped_news["🎯 大行評級與目標價"]) > 0:
+                news_conclusion = f"🎯 **市場焦點總結**：近期市場集中關注該股嘅**大行評級與目標價變動**，機構觀點對股價方向具備較大引導作用。"
+            elif len(grouped_news["💰 業績與財務數據"]) > 0:
+                news_conclusion = f"💰 **市場焦點總結**：近期新聞主要圍繞**業績與交付數據**，財報表現係短期股價波動嘅核心催化劑。"
+            elif len(grouped_news["⚖️ 宏觀政策與法規"]) > 0:
+                news_conclusion = f"⚖️ **市場焦點總結**：近期受到**宏觀政策、利率或法律訴訟**等消息影響，投資者需提防系統性風險。"
+            else:
+                news_conclusion = f"📌 **市場焦點總結**：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
+
+            st.info(news_conclusion)
         else:
             st.write("暫無最新新聞數據。")
 
@@ -190,19 +217,17 @@ if page == "📊 總覽、自動分析與提問":
             with st.chat_message("user"):
                 st.write(user_prompt)
 
-            # 本地智能邏輯回應
             q = user_prompt.lower()
             if any(k in q for k in ["現價", "幾錢", "價格", "收市"]):
                 response = f"📊 **{symbol}** 最新收市價為 **${latest_close:.2f}**（升跌幅：{pct_change:+.2f}%）。"
             elif any(k in q for k in ["支持", "20ma", "ma20", "撈底", "買"]):
-                response = f"🎯 短期支持位參考 20MA（**${ma20_val:.2f}**）。如果 RSI 處於超賣區（目前 {latest_rsi:.1f}），通常是分批佈局的參考點。"
+                response = f"🎯 短期支持位參考 20MA（**${ma20_val:.2f}**）。當前 RSI 為 {latest_rsi:.1f}。"
             elif any(k in q for k in ["止損", "走", "風險", "沽"]):
-                response = f"🛡️ 風險防守位可設在中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**），跌穿要小心擴大跌幅。"
+                response = f"🛡️ 風險防守位可設在中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**）。"
             elif any(k in q for k in ["rsi", "指標", "超買"]):
-                response = f"📉 目前 RSI(14) 數值為 **{latest_rsi:.1f}**。大於70代表過熱，小於30代表超賣。"
-            elif any(k in q for k in ["新聞", "消息", "動態"]):
-                headlines = "\n".join([f"• [{n['tag']}] {n['title']}" for n in news_snippets[:3]]) if news_snippets else "暫無新聞"
-                response = f"📰 最近期市場關心的頭條有：\n{headlines}"
+                response = f"📉 目前 RSI(14) 數值為 **{latest_rsi:.1f}**（>70 超買，<30 超賣）。"
+            elif any(k in q for k in ["新聞", "消息", "動態", "結語"]):
+                response = f"{news_conclusion}"
             else:
                 response = f"🤖 **本地分析摘要**：\n- 現價：${latest_close:.2f} ({pct_change:+.2f}%)\n- 趨勢指標：20MA=${ma20_val:.2f} | 50MA=${ma50_val:.2f}\n- 動能指標：RSI = {latest_rsi:.1f}\n你可以試下問：`現價`、`支持位`、`止損` 或 `新聞`！"
 
