@@ -3,6 +3,13 @@ import yfinance as yf
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import date
+import pandas as pd
+
+# 如果時間係在欄位（例如叫 'Datetime' 或 'Date'）
+df['Datetime'] = pd.to_datetime(df['Datetime'])
+
+# 如果時間係 Index
+df.index = pd.to_datetime(df.index)
 
 st.set_page_config(page_title="智能股票與市場動態 Dashboard", layout="wide")
 
@@ -203,7 +210,7 @@ if page == "📊 總覽、新聞彙整與提問":
                 signal_color = "red"
                 
             st.markdown(f"### 綜合評估訊號： :{signal_color}[**{buy_signal}**]")
-            st.write(f"**估算合理價 (Fair Value):** ＄{fair_value:.2f} | **建議最大買入價 (Max Buy Price)**: ＄{max_buy_price:.2f}")
+            st.write(f"**估算合理價 (Fair Value):** ＄{fair_value:.2f} | **建議最大買入價 (Max Buy Price):** ＄{max_buy_price:.2f}")
             
             with st.expander("🔍 觀看詳細分析理由", expanded=True):
                 for reason in reasons:
@@ -314,7 +321,8 @@ elif page == "📈 技術走勢圖表":
         fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
         fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
 
-        fig.update_xaxes(type='category')
+        #fig.update_xaxes(type='category')
+        fig.update_xaxes(type='date')
         fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=650)
         
         st.plotly_chart(fig, width='stretch')
