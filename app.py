@@ -358,7 +358,10 @@ elif page == "📈 技術走勢圖表":
             row=2, col=1
         )
         
-        fig.update_yaxes(gridcolor='rgba(255, 255, 255, 0.1)')
+        fig.update_yaxes(
+            gridcolor='rgba(255, 255, 255, 0.1)',
+            fixedrange=True  # 👈 鎖定 Y 軸！上下拖曳唔會再飛走，只保留 X 軸左右平移
+)
 
         # 全局風格：設定十字準星 (Crosshair) & 隱藏下方的 RangeSlider (讓版面更大更順手)
         fig.update_layout(
@@ -376,9 +379,14 @@ elif page == "📈 技術走勢圖表":
             fig, 
             use_container_width=True,
             config={
-                'scrollZoom': False,
-                'displayModeBar': True
-            }
+                'scrollZoom: False,
+                'displayModeBar': True, # 保留工具列
+                'modeBarButtonsToRemove': [
+                    'zoom2d',     # 👈 移除拉框 Zoom 按鈕
+                    'select2d',   # 👈 移除選擇工具
+                    'lasso2d'     # 👈 移除套索工具
+                ],
+                'displaylogo': False  # 隱藏 Plotly logo
         )
         
     else:
