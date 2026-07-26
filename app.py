@@ -1,109 +1,84 @@
 import streamlit as st
-import yfinance as yf
-import pandas as pd
+import yfinance as ticker_data  # 或 import yfinance as yf
 import plotly.graph_objects as go
 
-# 頁面基本設定
-st.set_page_config(page_title="Stock Analyzer & Decision Helper", layout="wide")
+st.set_page_config(page_title="Stock Analysis Dashboard", layout="wide")
+st.title("📈 股票分析與 AI 助手 Dashboard")
 
-st.title("📈 股票個股分析與買入決策助手")
+# --- 側邊欄：輸入股票代號與時間設定 ---
+st.sidebar.header("⚙️ 參數設定")
+symbol = st.sidebar.text_input("輸入股票代號 (例如: AAPL, 0700.HK, 9988.HK):", value="AAPL")
 
-# 1. 股票搜尋輸入
-col_search, col_margin = st.columns([2, 1])
-with col_search:
-    ticker_symbol = st.text_input("輸入股票代號 (美股如 AAPL / NVDA，港股如 0005.HK / 9988.HK):", "AAPL").upper()
-with col_margin:
-    required_margin = st.slider("期望安全邊際 (Margin of Safety %):", 5, 40, 20) / 100
+# 1. 新增時間週期選擇器
+time_frame = st.sidebar.selectbox(
+    "選擇時間週期 / 頻率 (Timeframe):",
+    options=[
+        "15 分鐘 (15m)",
+        "30 分鐘 (30m)",
+        "1 小時 (1h)",
+        "1 天 (1d)",
+        "1 週 (1wk)",
+        "1 個月 (1mo)"
+    ]
+)
 
-if ticker_symbol:
-    # 抓取即時數據
-    stock = yf.Ticker(ticker_symbol)
-    info = stock.info
+# 映射選單到 yfinance 參數 (Period 與 Interval)
+time_map = {
+    "15 分鐘 (15m)": {"period": "1mo", "interval": "15m"},
+    "30 分鐘 (30m)": {"period": "1mo", "interval": "30m"},
+    "1 小時 (1h)":   {"period": "2mo", "interval": "1h"},
+    "1 天 (1d)":     {"period": "1y",  "interval": "1d"},
+    "1 週 (1wk)":    {"period": "2y",  "interval": "1wk"},
+    "1 個月 (1mo)":  {"period": "5y",  "interval": "1mo"}
+}
 
-    if 'regularMarketPrice' in info or 'currentPrice' in info:
-        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
-        currency = info.get('currency', 'USD')
-        pe_ratio = info.get('trailingPE', None)
-        forward_pe = info.get('forwardPE', None)
-        roe = info.get('returnOnEquity', 0)
-        fcf = info.get('freeCashflow', 0)
-        target_mean_price = info.get('targetMeanPrice', None)
+selected_config = time_map[time_frame]
 
-        # --- 頂部關鍵指標 ---
-        st.markdown("---")
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("當前股價", f"{current_price} {currency}")
-        m2.metric("Trailing P/E", f"{pe_ratio:.2f}" if pe_ratio else "N/A")
-        m3.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A")
-        m4.metric("ROE", f"{roe * 100:.2f}%" if roe else "N/A")
+# --- 抓取股票數據 ---
+stock = ticker_data.Ticker(symbol)
+df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
 
-        # --- 2. 核心：入手決策 logic (Decision Engine) ---
-        st.subheader("💡 入手決策與估值分析")
+if not df.empty:
+    st.subheader(f"{symbol} 走勢圖 ({time_frame})")
+    
+    # 繪製 K 線圖 (Candlestick)
+    fig = go.Figure(data=[go.Candlestick(
+        x=df.index,
+        open=df['Open'],
+        high=df['High'],
+        low=df['Low'],
+        close=df['Close'],
+        name='K線'
+    )])
+    fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark")
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.error("無法抓取數據，請檢查股票代號或該時間週期是否有交易資料。")
 
-        buy_signal = "觀望 (Hold / Wait)"
-        signal_color = "orange"
-        reasons = []
+---
 
-        if target_mean_price:
-            fair_value = target_mean_price
-            max_buy_price = fair_value * (1 - required_margin)
+# --- 2. 新增 AI / 問題問答區塊 ---
+st.markdown("---")
+st.subheader("💬 股票 AI 問答 / 筆記助手")
 
-            # 判定條件 1: 價格折讓
-            if current_price <= max_buy_price:
-                price_ok = True
-                reasons.append(f"✅ 現價 (${current_price:.2f}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
-            else:
-                price_ok = False
-                reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
+# 初始化對話歷史 (Session State)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-            # 判定條件 2: 財務健康
-            health_ok = True
-            if roe and roe > 0.15:
-                reasons.append(f"✅ ROE ({roe*100:.1f}%) 表現優秀 ( > 15%)，具備高資本回報率/護城河。")
-            else:
-                health_ok = False
-                reasons.append(f"⚠️ ROE ({roe*100:.1f}% if roe else 'N/A') 偏低，需注意企業獲利能力。")
+# 顯示舊對話紀錄
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
 
-            if fcf and fcf > 0:
-                reasons.append("✅ 自由現金流 (FCF) 為正，財務狀況健康。")
-            else:
-                reasons.append("⚠️ 自由現金流偏弱或為負，營運風險較高。")
+# 輸入框
+if user_prompt := st.chat_input("輸入關於這隻股票的問題（例如：這隻股票最近趨勢如何？）："):
+    # 顯示使用者發送的訊息
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
+    with st.chat_message("user"):
+        st.write(user_prompt)
 
-            # 綜合訊號判定
-            if price_ok and health_ok:
-                buy_signal = "🟢 考慮入手 (Buy Candidate)"
-                signal_color = "green"
-            elif price_ok and not health_ok:
-                buy_signal = "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)"
-                signal_color = "gold"
-            else:
-                buy_signal = "🔴 建議觀望 / 暫不入手 (Overvalued / Wait for Dip)"
-                signal_color = "red"
-
-            st.markdown(f"### 綜合評估訊號： :{signal_color}[**{buy_signal}**]")
-            st.write(f"**估算合理價 (Fair Value)**: ${fair_value:.2f} | **建議最大買入價 (Max Buy Price)**: ${max_buy_price:.2f}")
-
-            with st.expander("🔍 觀看詳細分析理由", expanded=True):
-                for reason in reasons:
-                    st.write(reason)
-        else:
-            st.info("暫無足夠估值數據進行自動買入判定。")
-
-        # --- 3. 走勢圖表 ---
-        st.markdown("---")
-        st.subheader("📊 歷史走勢")
-        hist = stock.history(period="1y")
-
-        fig = go.Figure(data=[go.Candlestick(
-            x=hist.index,
-            open=hist['Open'],
-            high=hist['High'],
-            low=hist['Low'],
-            close=hist['Close'],
-            name="Price"
-        )])
-        fig.update_layout(title=f"{ticker_symbol} 近一年 K 線圖", xaxis_rangeslider_visible=False, height=450)
-        st.plotly_chart(fig, use_container_width=True)
-
-    else:
-        st.error("查無此股票代號，請檢查輸入是否正確。")
+    # 模擬/自動生成回答區域
+    with st.chat_message("assistant"):
+        response = f"🤖 分析中：關於 **{symbol}** 的問題「{user_prompt}」。目前的最新收盤價為 ${df['Close'].iloc[-1]:.2f}。"
+        st.write(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
