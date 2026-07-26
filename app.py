@@ -67,7 +67,7 @@ if not df.empty:
     ma20_val = df['MA20'].dropna().iloc[-1] if not df['MA20'].dropna().empty else latest_close
     ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
 
-# --- 頂部休市/假日提醒（全頁通用） ---
+# --- 頂部提示 1：休市/假日提醒 ---
 today = date.today()
 is_weekend = today.weekday() in [5, 6]
 last_data_date = df.index[-1].date() if not df.empty else None
@@ -76,6 +76,15 @@ if is_weekend:
     st.warning("⚠️ **【今日休市提示】** 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。")
 elif last_data_date and last_data_date < today:
     st.info(f"📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市（例如公眾假期或颱風休市）。最新數據結算至：`{last_data_date}`。")
+
+# --- 頂部提示 2：Timeframe 解讀指引 ---
+with st.expander("💡 **【小白指南】不同時間週期 (Timeframe) 的 AI 建議不一樣，該怎麼看？**", expanded=False):
+    st.markdown("""
+    * 🎯 **核心原則**：**「大週期 (1d) 定方向，小週期 (15m/30m) 找買點」**。
+    * 🧭 **步驟 1（看大方向）**：先切換至 **`1 天 (1d)`**。如果 1d 顯示 **🟢 偏多**，代表中長期大趨勢健康，安全係數高。
+    * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`** 或 **`30 分鐘 (30m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
+    * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈，不建議盲目抄底！
+    """)
 
 
 # ==========================================
