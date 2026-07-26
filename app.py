@@ -5,12 +5,6 @@ from plotly.subplots import make_subplots
 from datetime import date
 import pandas as pd
 
-# 如果時間係在欄位（例如叫 'Datetime' 或 'Date'）
-df['Datetime'] = pd.to_datetime(df['Datetime'])
-
-# 如果時間係 Index
-df.index = pd.to_datetime(df.index)
-
 st.set_page_config(page_title="智能股票與市場動態 Dashboard", layout="wide")
 
 # --- 側邊欄：分頁與時間週期設定 ---
@@ -54,6 +48,12 @@ stock = yf.Ticker(symbol)
 info = stock.info
 df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
 df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+
+# 如果時間係在欄位（例如叫 'Datetime' 或 'Date'）
+df['Datetime'] = pd.to_datetime(df['Datetime'])
+
+# 如果時間係 Index
+df.index = pd.to_datetime(df.index)
 
 # --- 計算技術指標 ---
 if not df.empty:
