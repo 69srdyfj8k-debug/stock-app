@@ -160,10 +160,10 @@ if page == "📊 總覽、新聞彙整與提問":
             roe_display = f"{roe * 100:.1f}%" if roe is not None else "N/A"
             
             if roe and roe > 0.15:
-                reasons.append(f"✅ ROE ({roe*100:.1f}%) 表現優秀 ( > 15%)，具備高資本回報率/護城河。")
+                reasons.append(f"✅ ROE ({roe_display}) 表現優秀 ( > 15%)，具備高資本回報率/護城河。")
             else:
                 health_ok = False
-                reasons.append(f"⚠️ ROE ({roe*100:.1f}% if roe else 'N/A') 偏低，需注意企業獲利能力。")
+                reasons.append(f"⚠️ ROE ({roe_display}) 偏低，需注意企業獲利能力。")
                 
             if fcf and fcf > 0:
                 reasons.append("✅ 自由現金流 (FCF) 為正，財務狀況健康。")
