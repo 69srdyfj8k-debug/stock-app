@@ -5,7 +5,12 @@ from plotly.subplots import make_subplots
 from datetime import date
 import pandas as pd
 
-st.set_page_config(page_title="智能股票與市場動態", layout="wide")
+# ⚠️ 必須是程式碼中執行的第一個 Streamlit 指令！
+st.set_page_config(
+    page_title="股票分析系統",  # 瀏覽器 Tab 的標題
+    page_icon="📈",             # 👈 喺度改 Icon！可以用 Emoji、圖片網址或本地檔案
+    layout="wide"
+)
 
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
