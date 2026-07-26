@@ -387,6 +387,7 @@ elif page == "📈 技術走勢圖表":
                     'lasso2d'     # 👈 移除套索工具
                 ],
                 'displaylogo': False  # 隱藏 Plotly logo
+            }
         )
         
     else:
