@@ -367,19 +367,19 @@ elif page == "📈 技術走勢圖表":
             margin=dict(l=20, r=20, t=40, b=20),
             hovermode="x unified",  # 將游標訊息統一合併顯示，操作感受大增
             xaxis_rangeslider_visible=False,
+            dragmode=False,  # 👈 停用滑鼠拉框 Zoom 功能
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
 
-        # 順手渲染圖表
-        fig.update_layout(
-            height=680,
-            template="plotly_dark",
-            margin=dict(l=20, r=20, t=40, b=20),
-            hovermode="x unified",
-            xaxis_rangeslider_visible=False,
-            dragmode=False,  # 👈 停用滑鼠拉框 Zoom 功能
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-)
+        # 順手渲染圖表 (👈 之前漏咗呢段渲染程式碼)
+        st.plotly_chart(
+            fig, 
+            use_container_width=True,
+            config={
+                'scrollZoom': False,
+                'displayModeBar': False
+            }
+        )
         
     else:
         st.error("暫無走勢圖數據。")
