@@ -379,7 +379,7 @@ elif page == "📈 技術走勢圖表":
             fig, 
             use_container_width=True,
             config={
-                'scrollZoom: False,
+                'scrollZoom': False,
                 'displayModeBar': True, # 保留工具列
                 'modeBarButtonsToRemove': [
                     'zoom2d',     # 👈 移除拉框 Zoom 按鈕
