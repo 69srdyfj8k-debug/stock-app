@@ -145,15 +145,24 @@ if page == "📊 總覽、新聞彙整與提問":
         if target_mean_price:
             fair_value = target_mean_price
             max_buy_price = fair_value * (1 - required_margin)
-            current_price = latest_close
+            current_price = round(latest_close,2)
             
             # 判定條件 1: 價格折讓
             if current_price <= max_buy_price:
                 price_ok = True
-                reasons.append(f"✅ 現價 (${current_price:.2f}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
+                reasons.append(f"✅ 現價 (${current_price}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
             else:
                 price_ok = False
-                reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
+                reasons.append(f"⚠️ 現價 (${current_price}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
+
+            # 判定條件 1: 價格折讓
+            if current_price <= max_buy_price:
+                price_ok = True
+                reasons.append(f"✅ 現價 (${current_price}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
+            else:
+                price_ok = False
+                reasons.append(f"⚠️ 現價 (${current_price}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
+    
                 
             # 判定條件 2: 財務健康
             health_ok = True
