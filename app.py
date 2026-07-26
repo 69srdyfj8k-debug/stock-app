@@ -3,23 +3,12 @@ import yfinance as yf
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import date
-from openai import OpenAI
 
 st.set_page_config(page_title="智能股票分析 Dashboard", layout="wide")
 
-# --- 初始化 DeepSeek Client ---
-deepseek_api_key = st.secrets.get("DEEPSEEK_API_KEY")
-ai_client = None
-if deepseek_api_key:
-    # DeepSeek 兼容 OpenAI SDK，只需指定 base_url
-    ai_client = OpenAI(
-        api_key=deepseek_api_key,
-        base_url="https://api.deepseek.com"
-    )
-
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
-page = st.sidebar.radio("選擇頁面：", ["📊 總覽與 AI 決策", "📈 技術走勢圖表"])
+page = st.sidebar.radio("選擇頁面：", ["📊 總覽與實時消息", "📈 技術走勢圖表"])
 
 st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
@@ -73,10 +62,8 @@ if not df.empty:
     latest_rsi = df['RSI'].dropna().iloc[-1] if not df['RSI'].dropna().empty else 50
     ma20_val = df['MA20'].dropna().iloc[-1] if not df['MA20'].dropna().empty else latest_close
     ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
-    high_period = df['High'].max()
-    low_period = df['Low'].min()
 
-# --- 頂部提示 1：休市提醒 ---
+# --- 休市提示 ---
 today = date.today()
 is_weekend = today.weekday() in [5, 6]
 last_data_date = df.index[-1].date() if not df.empty else None
@@ -87,19 +74,18 @@ elif last_data_date and last_data_date < today:
     st.info(f"📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_data_date}`。")
 
 # ==========================================
-# 📄 第一頁：總覽與 AI 決策
+# 📄 第一頁：總覽與實時消息
 # ==========================================
-if page == "📊 總覽與 AI 決策":
-    st.title(f"📊 {symbol} 股票總覽與 AI 決策")
-    st.caption(f"⏱️ 當前分析時間維度：**{time_frame}**")
+if page == "📊 總覽與實時消息":
+    st.title(f"📊 {symbol} 股票總覽與實時市場動態")
 
     if not df.empty:
         company_name = info.get('longName', symbol)
         sector = info.get('sector', 'N/A')
         market_cap = info.get('marketCap', 0)
         pe_ratio = info.get('trailingPE', 'N/A')
-        week_52_high = info.get('fiftyTwoWeekHigh', 'N/A')
-        week_52_low = info.get('fiftyTwoWeekLow', 'N/A')
+        target_price = info.get('targetMeanPrice', 'N/A')
+        recommendation = info.get('recommendationKey', 'N/A').upper()
 
         st.subheader(f"🏢 {company_name}")
         cap_str = f"${market_cap / 1e9:.2f}B" if market_cap > 1e9 else f"${market_cap / 1e6:.2f}M" if market_cap > 0 else "N/A"
@@ -107,8 +93,8 @@ if page == "📊 總覽與 AI 決策":
         col_a, col_b, col_c, col_d = st.columns(4)
         col_a.write(f"**板塊 Sector:** {sector}")
         col_b.write(f"**市值 Market Cap:** {cap_str}")
-        col_c.write(f"**市盈率 P/E Ratio:** {pe_ratio if isinstance(pe_ratio, str) else f'{pe_ratio:.2f}'}")
-        col_d.write(f"**52週範圍:** ${week_52_low} - ${week_52_high}")
+        col_c.write(f"**市盈率 P/E:** {pe_ratio if isinstance(pe_ratio, str) else f'{pe_ratio:.2f}'}")
+        col_d.write(f"**大行評級:** {recommendation} (目標價: ${target_price})")
 
         st.divider()
 
@@ -120,94 +106,50 @@ if page == "📊 總覽與 AI 決策":
 
         st.divider()
 
-        # AI 操盤手評估
-        st.subheader(f"🤖 AI 操盤手：技術面評估 ({time_frame})")
-
+        # 1. 自動量化邏輯分析（非 AI，純規則判斷）
+        st.subheader(f"⚡ 量化技術面信號 ({time_frame})")
         score = 0
         reasons = []
 
         if latest_close > ma20_val > ma50_val:
             score += 2
-            reasons.append(f"✅ **多頭排列**：在 `{time_frame}` 維度下，股價高於 20MA 及 50MA，處於上升通道。")
+            reasons.append(f"✅ **多頭排列**：股價站穩 20MA 及 50MA 上方，趨勢偏多。")
         elif latest_close < ma20_val < ma50_val:
             score -= 2
-            reasons.append(f"❌ **空頭排列**：在 `{time_frame}` 維度下，股價低於 20MA 及 50MA，短期處於下降趨勢。")
+            reasons.append(f"❌ **空頭排列**：股價低於 20MA 及 50MA，趨勢偏空。")
         else:
-            reasons.append(f"⚠️ **震盪格局**：在 `{time_frame}` 維度下，價格在均線附近交錯。")
+            reasons.append(f"⚠️ **震盪格局**：價格於均線附近反覆橫盤。")
 
         if latest_rsi > 70:
             score -= 1
-            reasons.append("⚠️ **RSI 超買 (>70)**：技術面過熱，追高風險較大。")
+            reasons.append("⚠️ **RSI 超買 (>70)**：技術面有超買回吐風險。")
         elif latest_rsi < 30:
             score += 1
-            reasons.append("🎯 **RSI 超賣 (<30)**：市場拋售過度，可能隨時迎來反彈。")
-        else:
-            reasons.append("✅ **RSI 中性 (30-70)**：買賣力量相對平衡。")
-
-        reasons_text = "\n".join([f"- {r}" for r in reasons])
+            reasons.append("🎯 **RSI 超賣 (<30)**：市場拋售過度，可能隨時反彈。")
 
         if score >= 2:
-            st.success(f"#### 🟢 **建議：【偏多／考慮分批入場】**\n\n**操作策略 (`{time_frame}`)**：可等待回踩 20MA (`${ma20_val:.2f}`) 附近逢低吸納；防守止損位設為 50MA (`${ma50_val:.2f}`)。\n\n**📊 判定依據：**\n{reasons_text}")
+            st.success("🟢 **技術信號：強勢上行**\n\n" + "\n".join([f"- {r}" for r in reasons]))
         elif score <= -2:
-            st.error(f"#### 🔴 **建議：【觀望／暫不建議入場】**\n\n**操作策略 (`{time_frame}`)**：下行風險較高，建議等待重回 20MA (`${ma20_val:.2f}`) 上方站穩後再考慮。\n\n**📊 判定依據：**\n{reasons_text}")
+            st.error("🔴 **技術信號：弱勢下行**\n\n" + "\n".join([f"- {r}" for r in reasons]))
         else:
-            st.info(f"#### 🟡 **建議：【中性觀望／等待突破】**\n\n**操作策略 (`{time_frame}`)**：多空力量均衡，留意是否突破上方阻力或跌破 20MA (`${ma20_val:.2f}`) 支持。\n\n**📊 判定依據：**\n{reasons_text}")
+            st.info("🟡 **技術信號：中性觀望**\n\n" + "\n".join([f"- {r}" for r in reasons]))
 
         st.divider()
 
-        # 4. 💬 DeepSeek AI 提問對話框
-        st.subheader("💬 股票與市場動態 AI 助手 (Powered by DeepSeek)")
-        st.caption("💡 你可以用廣東話問：`嚟緊有咩消息會影響呢隻股？` / `分析下佢最新嘅利好同利淡因素`")
-
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.write(message["content"])
-
-        if user_prompt := st.chat_input("想問呢隻股票咩問題？（例如新聞、消息面或走勢）："):
-            st.session_state.messages.append({"role": "user", "content": user_prompt})
-            with st.chat_message("user"):
-                st.write(user_prompt)
-
-            with st.chat_message("assistant"):
-                if ai_client:
-                    system_instructions = f"""
-                    你是一個專業、接地氣且客觀的股市分析師，請用廣東話（繁體中文，口吻專業生動）回答。
-                    
-                    當前分析股票數據：
-                    - 代號/名稱：{symbol} ({company_name})
-                    - 當前時間週期：{time_frame}
-                    - 最新價：${latest_close:.2f}
-                    - 20MA：${ma20_val:.2f} | 50MA：${ma50_val:.2f}
-                    - RSI (14)：{latest_rsi:.1f}
-                    - 52週高低：${week_52_low} - ${week_52_high}
-
-                    請結合以上技術數據，並著重從【消息面、市場催化劑、利好與利淡因素、潛在風險】等維度回答用戶問題。
-                    明確提醒用戶：AI 建議僅供參考，不構成投資建議。
-                    """
-
-                    messages_for_api = [
-                        {"role": "system", "content": system_instructions},
-                        {"role": "user", "content": user_prompt}
-                    ]
-
-                    try:
-                        with st.spinner("DeepSeek 正在分析市場數據與消息中..."):
-                            response_obj = ai_client.chat.completions.create(
-                                model="deepseek-chat",
-                                messages=messages_for_api,
-                                temperature=0.7
-                            )
-                            response = response_obj.choices[0].message.content
-                    except Exception as e:
-                        response = f"⚠️ DeepSeek API 調用失敗：{str(e)}"
-                else:
-                    response = "⚠️ 未設定 `DEEPSEEK_API_KEY`，請先喺 Streamlit Secrets 設定 Key。"
-
-                st.write(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
+        # 2. 自動抓取最新財經新聞（Yahoo Finance）
+        st.subheader("📰 最新實時新聞與催化劑")
+        try:
+            news_list = stock.news
+            if news_list:
+                for item in news_list[:5]:  # 顯示最新 5 則
+                    title = item.get('title')
+                    publisher = item.get('publisher')
+                    link = item.get('link')
+                    st.markdown(f"• **[{title}]({link})** — *{publisher}*")
+            else:
+                st.write("暫無最新新聞數據。")
+        except Exception:
+            st.write("無法讀取實時新聞。")
 
     else:
         st.error("無法抓取數據，請檢查股票代號。")
@@ -242,5 +184,3 @@ elif page == "📈 技術走勢圖表":
         fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=650)
         
         st.plotly_chart(fig, width='stretch')
-    else:
-        st.error("無法抓取該時間週期的圖表數據。")
