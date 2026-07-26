@@ -145,6 +145,7 @@ if page == "📊 總覽、新聞彙整與提問":
         if target_mean_price:
             fair_value = target_mean_price
             max_buy_price = fair_value * (1 - required_margin)
+            current_price = latest_close
             
             # 判定條件 1: 價格折讓
             if current_price <= max_buy_price:
