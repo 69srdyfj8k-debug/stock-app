@@ -139,10 +139,10 @@ if page == "📊 總覽、新聞彙整與提問":
         reasons = []
         
         target_mean_price = info.get('targetMeanPrice', None)
-roe = info.get('returnOnEquity', None)
-fcf = info.get('freeCashflow', None)
+        roe = info.get('returnOnEquity', None)
+        fcf = info.get('freeCashflow', None)
 
-if target_mean_price:
+        if target_mean_price:
             fair_value = target_mean_price
             max_buy_price = fair_value * (1 - required_margin)
             
