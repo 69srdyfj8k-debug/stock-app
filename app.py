@@ -135,49 +135,19 @@ if not df.empty:
     
     st.plotly_chart(fig, width='stretch')
 
-    # --- 6. 原始分析訊號解讀 ---
+   # --- 6. 原始分析訊號解讀 ---
     st.subheader("💡 綜合技術分析解讀")
     
     ma20_val = df['MA20'].iloc[-1]
     ma50_val = df['MA50'].iloc[-1]
 
     trend_signal = "🟢 <b>多頭排列 (bullish)</b>：股價高於 20MA 及 50MA，短期走勢偏強。" if latest_close > ma20_val > ma50_val else \
-                   "🔴 <b>空頭排列 (bearish)</b>：股價低於 20MA 及 50MA，短期走勢偏弱。" if latest_close < ma20_val < ma50_val else \
-                   "🟡 <b>震盪整理 (consolidation)</b>：均線交錯，建議等待明確突破訊號。"
+                   ("🔴 <b>空頭排列 (bearish)</b>：股價低於 20MA 及 50MA，短期走勢偏弱。" if latest_close < ma20_val < ma50_val else \
+                    "🟡 <b>震盪整理 (consolidation)</b>：均線交錯，建議等待明確突破訊號。")
 
     rsi_signal = "⚠️ <b>RSI > 70 (超買區)</b>：短期技術面過熱，可能面臨拉回修正壓力。" if latest_rsi > 70 else \
-                 "🎯 <b>RSI < 30 (超賣區)</b>：短期拋售過度，可能出現反彈契機。" else \
-                 "✅ <b>RSI 處於 30-70 中性區</b>：價格波動處於正常範圍。"
+                 ("🎯 <b>RSI < 30 (超賣區)</b>：短期拋售過度，可能出現反彈契機。" if latest_rsi < 30 else \
+                  "✅ <b>RSI 處於 30-70 中性區</b>：價格波動處於正常範圍。")
 
     st.markdown(f"- **均線趨勢**：{trend_signal}", unsafe_allow_html=True)
     st.markdown(f"- **RSI 強弱**：{rsi_signal}", unsafe_allow_html=True)
-
-else:
-    st.error("無法抓取數據，請檢查股票代號或該時間週期是否有交易資料。")
-
-# --- 7. AI 問答區塊 ---
-st.divider()
-st.subheader("💬 股票 AI 助手")
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-if user_prompt := st.chat_input("輸入關於這隻股票的問題："):
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
-    with st.chat_message("user"):
-        st.write(user_prompt)
-
-    with st.chat_message("assistant"):
-        rsi_status = "超買" if latest_rsi > 70 else ("超賣" if latest_rsi < 30 else "中性")
-        response = f"🤖 分析助手：關於 **{symbol}** ({time_frame})：\n\n" \
-                   f"- 最新價：${latest_close:.2f}\n" \
-                   f"- 市值：{cap_str} | P/E：{pe_ratio}\n" \
-                   f"- RSI 指標：{latest_rsi:.1f} ({rsi_status})\n\n" \
-                   f"針對問題「{user_prompt}」，請留意目前 20MA (${ma20_val:.2f}) 與 50MA (${ma50_val:.2f}) 的支持/阻力位置。"
-        
-        st.write(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
