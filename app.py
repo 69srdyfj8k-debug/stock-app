@@ -12,6 +12,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# 📱 強制覆蓋手機 Touch Icon (iOS Apple Touch Icon & PWA Favicon)
+# 裡面嘅 URL 可以換做你想要的 PNG 圖檔網址 (建議 180x180 或以上的正方形圖)
+icon_url = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4c8.png"  # 📈 圖片網址
+
+st.markdown(f'''
+    <head>
+        <link rel="apple-touch-icon" sizes="180x180" href="{icon_url}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{icon_url}">
+    </head> 
+    ''', unsafe_allow_html=True)
+    
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
 page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞彙整與提問", "📈 技術走勢圖表"])
