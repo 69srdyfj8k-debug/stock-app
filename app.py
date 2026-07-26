@@ -4,11 +4,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import date
 
-st.set_page_config(page_title="智能股票與市場動態 Dashboard", layout="wide")
+st.set_page_config(page_title="智能股票分析 Dashboard", layout="wide")
 
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
-page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞彙整與提問", "📈 技術走勢圖表"])
+page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞自動分析與技術面", "📈 技術走勢圖表"])
 
 st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
@@ -65,7 +65,7 @@ if not df.empty:
     high_period = df['High'].max()
     low_period = df['Low'].min()
 
-# --- 收集並將新聞 Group 埋一齊 + 自動生成 Conclusion ---
+# --- 收集並將新聞 Group 埋一齊 + 自動分析解讀 ---
 grouped_news = {
     "💰 業績與財務數據": [],
     "🎯 大行評級與目標價": [],
@@ -96,10 +96,10 @@ except Exception:
     pass
 
 # ==========================================
-# 📄 第一頁：總覽、新聞彙整與提問
+# 📄 第一頁：總覽、新聞自動分析與技術面
 # ==========================================
-if page == "📊 總覽、新聞彙整與提問":
-    st.title(f"📊 {symbol} 股票總覽與智能市場彙整")
+if page == "📊 總覽、新聞自動分析與技術面":
+    st.title(f"📊 {symbol} 股票總覽、新聞自動分析與技術面")
 
     if not df.empty:
         company_name = info.get('longName', symbol)
@@ -128,29 +128,35 @@ if page == "📊 總覽、新聞彙整與提問":
 
         st.divider()
 
-        # ⚡ 豐富的量化技術面信號與深入解析
-        st.subheader(f"⚡ 量化技術面信號與深度評析 ({time_frame})")
+        # ⚡ 完整豐富的量化技術面信號與深度評析
+        st.subheader(f"⚡ 量化技術面信號與詳盡指標拆解 ({time_frame})")
         score = 0
         reasons = []
 
+        # 1. 均線排列分析
         if latest_close > ma20_val > ma50_val:
             score += 2
-            reasons.append(f"✅ **多頭排列**：現價 (${latest_close:.2f}) 穩居 20MA 及 50MA 上方，短中期趨勢強勢。")
+            reasons.append(f"✅ **多頭排列（強勢）**：現價 (${latest_close:.2f}) 穩居 20MA (${ma20_val:.2f}) 及 50MA (${ma50_val:.2f}) 上方，短中期上升趨勢明顯健康。")
         elif latest_close < ma20_val < ma50_val:
             score -= 2
-            reasons.append(f"❌ **空頭排列**：現價 (${latest_close:.2f}) 低於 20MA 及 50MA，短期走勢偏弱。")
+            reasons.append(f"❌ **空頭排列（弱勢）**：現價 (${latest_close:.2f}) 低於 20MA (${ma20_val:.2f}) 及 50MA (${ma50_val:.2f})，賣壓較重，短線偏空。")
         else:
-            reasons.append(f"⚠️ **均線糾結**：股價穿梭於均線之間，屬於震盪整理格局。")
+            reasons.append(f"⚠️ **均線交錯（震盪）**：股價在 20MA 與 50MA 之間爭持，方向未明朗，屬於區間盤整格局。")
 
+        # 2. RSI 動能分析
         if latest_rsi > 70:
             score -= 1
-            reasons.append(f"⚠️ **RSI 超買區 ({latest_rsi:.1f})**：動能過熱，小心短期技術性回吐。")
+            reasons.append(f"⚠️ **RSI 超買區 ({latest_rsi:.1f})**：動能指標顯示短線升幅過急，市面有獲利回吐或技術性調整風險。")
         elif latest_rsi < 30:
             score += 1
-            reasons.append(f"🎯 **RSI 超賣區 ({latest_rsi:.1f})**：拋壓過重，隨時有超跌反彈機會。")
+            reasons.append(f"🎯 **RSI 超賣區 ({latest_rsi:.1f})**：動能指標顯示拋售過度，市場隨時有超跌反彈或見底機會。")
         else:
-            reasons.append(f"⚖️ **RSI 中性區 ({latest_rsi:.1f})**：多空交鋒平衡，未見極端情緒。")
+            reasons.append(f"⚖️ **RSI 中性區 ({latest_rsi:.1f})**：多空雙方力量均勢，未出現極端超買或超賣現象。")
 
+        # 3. 價格波幅與極值參考
+        reasons.append(f"📈 **區間極值**：在此分析週期內，最高價曾達 **${high_period:.2f}**，最低見 **${low_period:.2f}**。")
+
+        # 綜合評級展示
         if score >= 2:
             st.success("🟢 **綜合技術評級：強勢看好 (Bullish)**\n\n" + "\n".join([f"- {r}" for r in reasons]))
         elif score <= -2:
@@ -161,11 +167,13 @@ if page == "📊 總覽、新聞彙整與提問":
         st.divider()
 
         # ==========================================
-        # 📰 新聞分類彙整 + 自動 Conclusion 結語
+        # 📰 新聞自動彙整、分類 Grouping 與深度解讀
         # ==========================================
-        st.subheader("📰 實時新聞 Grouping 與智能市場結語 (Conclusion)")
+        st.subheader("📰 新聞自動 Grouping 與智能市場解讀 (Conclusion)")
+        st.caption("系統已自動抓取最新網上新聞，按類別歸納並生成市場解讀：")
 
         news_conclusion = "📌 **市場焦點總結**：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
+        
         if news_count > 0:
             for category, items in grouped_news.items():
                 if items:
@@ -178,12 +186,13 @@ if page == "📊 總覽、新聞彙整與提問":
 
             st.markdown("")
             
+            # 自動生成解讀
             if len(grouped_news["🎯 大行評級與目標價"]) > 0:
-                news_conclusion = f"🎯 **市場焦點總結**：近期市場集中關注該股嘅**大行評級與目標價變動**，機構觀點對股價方向具備較大引導作用。"
+                news_conclusion = f"🎯 **市場焦點總結**：近期新聞集中於**大行評級與目標價調整**，機構動向對短線買賣情緒有直接推動作用。"
             elif len(grouped_news["💰 業績與財務數據"]) > 0:
-                news_conclusion = f"💰 **市場焦點總結**：近期新聞主要圍繞**業績與交付數據**，財報表現係短期股價波動嘅核心催化劑。"
+                news_conclusion = f"💰 **市場焦點總結**：近期新聞主要圍繞**業績、交付或財報數據**，基本面消息係觸發股價波動嘅核心引擎。"
             elif len(grouped_news["⚖️ 宏觀政策與法規"]) > 0:
-                news_conclusion = f"⚖️ **市場焦點總結**：近期受到**宏觀政策、利率或法律訴訟**等消息影響，投資者需提防系統性風險。"
+                news_conclusion = f"⚖️ **市場焦點總結**：市場受到**宏觀政策、利率或監管條例**影響，投資者需格外留意系統性風險。"
 
             st.info(news_conclusion)
         else:
@@ -192,10 +201,10 @@ if page == "📊 總覽、新聞彙整與提問":
         st.divider()
 
         # ==========================================
-        # 💬 本地智能提問助手（升級版：更聰明捕捉意圖）
+        # 💬 本地智能提問助手
         # ==========================================
         st.subheader("💬 股票數據提問助手")
-        st.caption("輸入你想了解的關鍵字，例如：`入市`、`支持位`、`RSI`、`止損`、`新聞` 等。")
+        st.caption("隨便輸入你想問嘅問題，例如：`而家入市好唔好？`、`支持位係幾多？`、`止損點點睇？`")
 
         if "messages" not in st.session_state:
             st.session_state.messages = []
@@ -204,31 +213,30 @@ if page == "📊 總覽、新聞彙整與提問":
             with st.chat_message(message["role"]):
                 st.write(message["content"])
 
-        if user_prompt := st.chat_input("隨便問：例如「而家入市睇唔睇好？」"):
+        if user_prompt := st.chat_input("輸入你想查詢的股票問題："):
             st.session_state.messages.append({"role": "user", "content": user_prompt})
             with st.chat_message("user"):
                 st.write(user_prompt)
 
             q = user_prompt.lower()
             
-            # 更智能的關鍵字匹配
             if any(k in q for k in ["入市", "買", "撈底", "睇好", "投資", "上車", "好唔好"]):
                 if latest_close > ma20_val:
                     response = f"💡 **入市分析**：現價 **${latest_close:.2f}** 企喺短期 20MA (**${ma20_val:.2f}**) 上方，且 RSI 處於 **{latest_rsi:.1f}**。短線技術面偏向正面，但若追高需注意設好防守位。"
                 else:
-                    response = f"💡 **入市分析**：現價 **${latest_close:.2f}** 目前低於短期 20MA (**${ma20_val:.2f}**)，走勢偏弱。建議等股價重新企穩均線或 RSI 跌至超賣區時再考慮部署。"
+                    response = f"💡 **入市分析**：現價 **${latest_close:.2f}** 目前低於短期 20MA (**${ma20_val:.2f}**) 支援，走勢偏弱。建議等股價重新企穩均線或 RSI 跌至超賣區時再考慮部署。"
             elif any(k in q for k in ["現價", "幾錢", "價格", "收市"]):
                 response = f"📊 **{symbol}** 最新收市價為 **${latest_close:.2f}**（升跌幅：{pct_change:+.2f}%）。"
-            elif any(k in q for k in ["支持", "20ma", "ma20"]):
+            elif any(k in q for k in ["支持", "20ma", "ma20", "50ma"]):
                 response = f"🎯 短期支持位參考 20MA（**${ma20_val:.2f}**）；中期 50MA 支援在（**${ma50_val:.2f}**）。"
-            elif any(k in q for k in ["止損", "走", "風險", "沽"]):
-                response = f"🛡️ 風險防守位可設在中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**）。"
+            elif any(k in q for k in ["止損", "走", "風險", "沽", "防守"]):
+                response = f"🛡️ 風險防守位可參考中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**）。"
             elif any(k in q for k in ["rsi", "指標", "超買", "超賣"]):
                 response = f"📉 目前 RSI(14) 數值為 **{latest_rsi:.1f}**（>70 為超買，<30 為超賣）。"
-            elif any(k in q for k in ["新聞", "消息", "動態", "結語"]):
+            elif any(k in q for k in ["新聞", "消息", "動態", "結語", "網"]):
                 response = f"{news_conclusion}"
             else:
-                response = f"🤖 **本地智慧助手提示**：\n我幫你分析咗當前數據：\n- 現價：${latest_close:.2f} ({pct_change:+.2f}%)\n- 20MA：${ma20_val:.2f} | 50MA=${ma50_val:.2f}\n- RSI：{latest_rsi:.1f}\n\n你可以直接問我：\n• 「而家入市好唔好？」\n• 「支持位係幾多？」\n• 「止損點設定喺邊？」\n• 「最近有咩新聞？」"
+                response = f"🤖 **本地智慧助手摘要**：\n- 現價：${latest_close:.2f} ({pct_change:+.2f}%)\n- 均線：20MA=${ma20_val:.2f} | 50MA=${ma50_val:.2f}\n- 動能：RSI = {latest_rsi:.1f}\n你可以隨便問我：「而家入市好唔好？」、「支持位係幾多？」或「最近有咩新聞？」！"
 
             with st.chat_message("assistant"):
                 st.write(response)
@@ -237,7 +245,7 @@ if page == "📊 總覽、新聞彙整與提問":
         st.error("無法抓取數據。")
 
 # ==========================================
-# 📈 第二頁 : 技術走勢圖表
+# 📈 第二頁：技術走勢圖表
 # ==========================================
 elif page == "📈 技術走勢圖表":
     st.title(f"📈 {symbol} 技術走勢圖表")
