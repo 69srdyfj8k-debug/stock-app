@@ -99,6 +99,16 @@ try:
 except Exception:
     pass
 
+# --- 休市提示 ---
+today = date.today()
+is_weekend = today.weekday() in [5, 6]
+last_data_date = df.index[-1].date() if not df.empty else None
+
+if is_weekend:
+    st.warning("⚠️ **【今日休市提示】** 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。")
+elif last_data_date and last_data_date < today:
+    st.info(f"📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_data_date}`。")
+
 # ==========================================
 # 📄 第一頁：總覽、新聞彙整與提問
 # ==========================================
