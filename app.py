@@ -8,7 +8,7 @@ st.set_page_config(page_title="智能股票分析 Dashboard", layout="wide")
 
 # --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header("📌 功能選單")
-page = st.sidebar.radio("選擇頁面：", ["📊 總覽與實時消息", "📈 技術走勢圖表"])
+page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞與提問助手", "📈 技術走勢圖表"])
 
 st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
@@ -62,6 +62,21 @@ if not df.empty:
     latest_rsi = df['RSI'].dropna().iloc[-1] if not df['RSI'].dropna().empty else 50
     ma20_val = df['MA20'].dropna().iloc[-1] if not df['MA20'].dropna().empty else latest_close
     ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
+    high_period = df['High'].max()
+    low_period = df['Low'].min()
+
+# --- 收集新聞標題幫手 ---
+news_snippets = []
+try:
+    for item in stock.news[:5]:
+        content = item.get('content', item) if isinstance(item, dict) else item
+        title = content.get('title')
+        provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
+        click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
+        if title:
+            news_snippets.append({"title": title, "publisher": provider, "url": click_url})
+except Exception:
+    pass
 
 # --- 休市提示 ---
 today = date.today()
@@ -74,10 +89,10 @@ elif last_data_date and last_data_date < today:
     st.info(f"📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_data_date}`。")
 
 # ==========================================
-# 📄 第一頁：總覽與實時消息
+# 📄 第一頁：總覽、新聞與提問助手
 # ==========================================
-if page == "📊 總覽與實時消息":
-    st.title(f"📊 {symbol} 股票總覽與實時市場動態")
+if page == "📊 總覽、新聞與提問助手":
+    st.title(f"📊 {symbol} 股票總覽與智能助理")
 
     if not df.empty:
         company_name = info.get('longName', symbol)
@@ -106,7 +121,7 @@ if page == "📊 總覽與實時消息":
 
         st.divider()
 
-        # 1. 自動量化邏輯分析（非 AI，純規則判斷）
+        # 量化技術面信號
         st.subheader(f"⚡ 量化技術面信號 ({time_frame})")
         score = 0
         reasons = []
@@ -136,44 +151,61 @@ if page == "📊 總覽與實時消息":
 
         st.divider()
 
-        # 2. 自動抓取最新財經新聞（Yahoo Finance 兼容修正）
+        # 實時新聞列表
         st.subheader("📰 最新實時新聞與催化劑")
-        try:
-            news_list = stock.news
-            if news_list:
-                count = 0
-                for item in news_list:
-                    # 兼容 yfinance 新舊資料結構
-                    content = item.get('content', item) if isinstance(item, dict) else item
-                    
-                    title = content.get('title')
-                    provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
-                    
-                    # 取得連結
-                    click_url = None
-                    if 'canonicalUrl' in content and isinstance(content['canonicalUrl'], dict):
-                        click_url = content['canonicalUrl'].get('url')
-                    elif 'clickThroughUrl' in content and isinstance(content['clickThroughUrl'], dict):
-                        click_url = content['clickThroughUrl'].get('url')
-                    elif 'link' in content:
-                        click_url = content.get('link')
+        if news_snippets:
+            for item in news_snippets:
+                if item["url"]:
+                    st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
+                else:
+                    st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
+        else:
+            st.write("ūk暫無最新新聞數據。")
 
-                    if title:
-                        if click_url:
-                            st.markdown(f"• **[{title}]({click_url})** — *{provider}*")
-                        else:
-                            st.markdown(f"• **{title}** — *{provider}*")
-                        count += 1
-                    
-                    if count >= 5:  # 最多顯示 5 則
-                        break
-                        
-                if count == 0:
-                    st.write("暫無新聞標題數據。")
+        st.divider()
+
+        # ==========================================
+        # 💬 本地智能提問助手（免 API 聊天框）
+        # ==========================================
+        st.subheader("💬 股票數據提問助手 (本地智能答題)")
+        st.caption("你可以隨便輸入關鍵字提問，例如：`價格`、`支持位`、`RSI`、`止損`、`最高價` 等。")
+
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
+
+        if user_prompt := st.chat_input("輸入你想查詢的重點（例如：支持位係幾多？）："):
+            st.session_state.messages.append({"role": "user", "content": user_prompt})
+            with st.chat_message("user"):
+                st.write(user_prompt)
+
+            # 根據用戶關鍵字自動生成精準答案
+            query_lower = user_prompt.lower()
+            if any(k in query_lower for k in ["價格", "幾錢", "現價", "收市"]):
+                response = f"📊 **{symbol}** 目前最新收市價係 **${latest_close:.2f}**（變動：{pct_change:+.2f}%）。"
+            elif any(k in query_lower for k in ["支持", "20ma", "ma20", "買入"]):
+                response = f"🎯 短期 20MA 支持位大約在 **${ma20_val:.2f}**；中期 50MA 支援在 **${ma50_val:.2f}**。"
+            elif any(k in query_lower for k in ["止損", "防守", "走"]):
+                response = f"🛡️ 建議防守止損位可參考中期 50MA（**${ma50_val:.2f}**）或近期低位（**${low_period:.2f}**）。"
+            elif any(k in query_lower for k in ["rsi", "超買", "超賣"]):
+                response = f"📉 當前 RSI (14) 指標數值為 **{latest_rsi:.1f}**（>70 為超買，<30 為超賣）。"
+            elif any(k in query_lower for k in ["高", "最高"]):
+                response = f"📈 在此週期內，最高價曾見 **${high_period:.2f}**（52週高位：${info.get('fiftyTwoWeekHigh', 'N/A')}）。"
+            elif any(k in query_lower for k in ["新聞", "消息"]):
+                news_titles = "\n".join([f"• {n['title']}" for n in news_snippets[:3]]) if news_snippets else "暫無新聞"
+                response = f"📰 最近期的幾條新聞標題如下：\n{news_titles}"
             else:
-                st.write("暫無最新新聞數據。")
-        except Exception as e:
-            st.write("無法讀取實時新聞。")
+                response = f"🤖 我係本地智慧助手。根據當前數據：\n- 現價：${latest_close:.2f}\n- 20MA：${ma20_val:.2f}\n- RSI：{latest_rsi:.1f}\n你可以試下問：`現價`、`支持位`、`RSI`、`止損` 或 `新聞`！"
+
+            with st.chat_message("assistant"):
+                st.write(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+    else:
+        st.error("無法抓取數據。")
 
 # ==========================================
 # 📈 第二頁：技術走勢圖表
