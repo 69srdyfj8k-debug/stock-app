@@ -377,7 +377,7 @@ elif page == "📈 技術走勢圖表":
             use_container_width=True,
             config={
                 'scrollZoom': False,
-                'displayModeBar': False
+                'displayModeBar': True
             }
         )
         
