@@ -294,33 +294,84 @@ if page == "📊 總覽、新聞彙整與提問":
         st.error("無法抓取數據。")
 
 # ==========================================
-# 📈 第二頁 : 技術走勢圖表
+# 📈 第二頁 : 技術走勢圖表 (優化操作版)
 # ==========================================
 elif page == "📈 技術走勢圖表":
     st.title(f"📈 {symbol} 技術走勢圖表")
-    st.caption(f"⏱️ 當前時間週期：**{time_frame}**")
+    st.caption(f"⏱️ 當前時間週期：**{time_frame}** | 💡 提示：你可以用滑鼠在圖表中拉選框進行放大，雙擊圖表重置檢視。")
 
     if not df.empty:
+        # 創建 2 個上下子圖 (上方：K線與均線 / 下方：RSI)
         fig = make_subplots(
             rows=2, cols=1, 
             shared_xaxes=True, 
-            vertical_spacing=0.03, 
-            row_heights=[0.7, 0.3],
-            subplot_titles=(f"{symbol} 走勢圖與均線 ({time_frame})", "RSI 指標")
+            vertical_spacing=0.04, 
+            row_heights=[0.75, 0.25],
+            subplot_titles=(f"{symbol} 走勢圖與移動平均線", "RSI (14) 相對強弱指標")
         )
 
-        x_axis = df.index.strftime('%Y-%m-%d %H:%M') if 'm' in selected_config['interval'] or 'h' in selected_config['interval'] else df.index.strftime('%Y-%m-%d')
-
-        fig.add_trace(go.Candlestick(x=x_axis, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='K線'), row=1, col=1)
-        fig.add_trace(go.Scatter(x=x_axis, y=df['MA20'], mode='lines', name='20MA', line=dict(color='orange', width=1.5)), row=1, col=1)
-        fig.add_trace(go.Scatter(x=x_axis, y=df['MA50'], mode='lines', name='50MA', line=dict(color='blue', width=1.5)), row=1, col=1)
-
-        fig.add_trace(go.Scatter(x=x_axis, y=df['RSI'], mode='lines', name='RSI', line=dict(color='purple', width=1.5)), row=2, col=1)
-        fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
-        fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
-
-        #fig.update_xaxes(type='category')
-        fig.update_xaxes(type='date')
-        fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=650)
+        # 1. 主圖：K 線圖
+        fig.add_trace(
+            go.Candlestick(
+                x=df.index, 
+                open=df['Open'], 
+                high=df['High'], 
+                low=df['Low'], 
+                close=df['Close'], 
+                name='K線'
+            ), 
+            row=1, col=1
+        )
         
-        st.plotly_chart(fig, width='stretch')
+        # 2. 主圖：20MA & 50MA 均線
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df['MA20'], mode='lines', name='20MA', line=dict(color='orange', width=1.5)), 
+            row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df['MA50'], mode='lines', name='50MA', line=dict(color='#2962FF', width=1.5)), 
+            row=1, col=1
+        )
+
+        # 3. 副圖：RSI
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df['RSI'], mode='lines', name='RSI', line=dict(color='#9C27B0', width=1.5)), 
+            row=2, col=1
+        )
+        # RSI 30/70 參考線
+        fig.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.7, row=2, col=1)
+        fig.add_hline(y=30, line_dash="dash", line_color="green", opacity=0.7, row=2, col=1)
+
+        # --- ⚙️ 圖表佈局與互動優化 ---
+        
+        # 設定非交易日/休市自動過濾 (跳過週末空白)
+        rangebreaks_config = [dict(bounds=["sat", "mon"])] # 隱藏週末
+        
+        # 如果是分步圖 (如 15m/1h)，亦可隱藏夜盤/休市空隙
+        if 'm' in selected_config['interval'] or 'h' in selected_config['interval']:
+            rangebreaks_config.append(dict(bounds=[16, 9.5], pattern="hour")) # 跳過非交易時段
+
+        fig.update_xaxes(
+            type='date',
+            rangebreaks=rangebreaks_config,
+            gridcolor='rgba(255, 255, 255, 0.1)',
+            row=2, col=1
+        )
+        
+        fig.update_yaxes(gridcolor='rgba(255, 255, 255, 0.1)')
+
+        # 全局風格：設定十字準星 (Crosshair) & 隱藏下方的 RangeSlider (讓版面更大更順手)
+        fig.update_layout(
+            height=680,
+            template="plotly_dark",
+            margin=dict(l=20, r=20, t=40, b=20),
+            hovermode="x unified",  # 將游標訊息統一合併顯示，操作感受大增
+            xaxis_rangeslider_visible=False,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+
+        # 順手渲染圖表
+        st.plotly_chart(fig, use_container_width=True)
+        
+    else:
+        st.error("暫無走勢圖數據。")
