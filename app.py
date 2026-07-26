@@ -203,7 +203,7 @@ if page == "📊 總覽、新聞彙整與提問":
                 signal_color = "red"
                 
             st.markdown(f"### 綜合評估訊號： :{signal_color}[**{buy_signal}**]")
-            st.write(f"**估算合理價 (Fair Value)**: ${fair_value:.2f} | **建議最大買入價 (Max Buy Price)**: ${max_buy_price:.2f}")
+            st.write(f"**估算合理價 (Fair Value):** ＄{fair_value:.2f} | **建議最大買入價 (Max Buy Price)**: ＄{max_buy_price:.2f}")
             
             with st.expander("🔍 觀看詳細分析理由", expanded=True):
                 for reason in reasons:
