@@ -127,67 +127,60 @@ if not df.empty:
     else:
         reasons.append("✅ **RSI 中性 (30-70)**：買賣力量相對平衡，無過熱或過冷現象。")
 
-    # 最終決策輸出
+  # --- 5. ✨【核心重點】AI 操盤手：綜合入場及買賣決策評估 ---
+    st.markdown("### 🤖 AI 操盤手：綜合入場及買賣評估")
+
+    # 判定買賣總體建議分數
+    score = 0
+    reasons = []
+
+    # 1. 均線趨勢評估
+    if latest_close > ma20_val > ma50_val:
+        score += 2
+        reasons.append("✅ **多頭排列**：股價高於 20MA 及 50MA，處於強勢上升通道。")
+    elif latest_close < ma20_val < ma50_val:
+        score -= 2
+        reasons.append("❌ **空頭排列**：股價低於 20MA 及 50MA，短期處於下降趨勢。")
+    else:
+        reasons.append("⚠️ **震盪格局**：價格在均線附近交錯，趨勢尚未完全明朗。")
+
+    # 2. RSI 強弱評估
+    if latest_rsi > 70:
+        score -= 1
+        reasons.append("⚠️ **RSI 超買 (>70)**：技術面短期過熱，直接追高風險較大，隨時有拉回修正壓力。")
+    elif latest_rsi < 30:
+        score += 1
+        reasons.append("🎯 **RSI 超賣 (<30)**：市場拋售過度，技術面出現極度超賣，可能隨時迎來反彈。")
+    else:
+        reasons.append("✅ **RSI 中性 (30-70)**：買賣力量相對平衡，無過熱或過冷現象。")
+
+    # 組合原因內容
+    reasons_text = "\n".join([f"- {r}" for r in reasons])
+
+    # 最終決策輸出 (改為直接呼叫 Streamlit 提示框，避免 with 語法錯誤)
     if score >= 2:
-        decision_box = st.success
-        action_title = "🟢 **建議：【偏多／考慮分批入場】**"
-        action_detail = (
+        st.success(
+            f"#### 🟢 **建議：【偏多／考慮分批入場】**\n\n"
             f"**操作策略**：目前技術面偏強，若想建倉，建議採用 **分批買入 (Dollar-cost averaging)** 策略。\n\n"
             f"- **建議進場點**：可等待回踩 20MA (`${ma20_val:.2f}`) 附近確認支持時逢低吸納。\n"
-            f"- **建議防守/止損位**：若跌破 50MA (`${ma50_val:.2f}`) 宜果斷止損離場。"
+            f"- **建議防守/止損位**：若跌破 50MA (`${ma50_val:.2f}`) 宜果斷止損離場。\n\n"
+            f"**📊 判定依據與技術細節：**\n{reasons_text}"
         )
     elif score <= -2:
-        decision_box = st.error
-        action_title = "🔴 **建議：【觀望／暫不建議入場】**"
-        action_detail = (
+        st.error(
+            f"#### 🔴 **建議：【觀望／暫不建議入場】**\n\n"
             f"**操作策略**：目前技術面偏弱，下行風險較高，不建議盲目抄底。\n\n"
             f"- **持股者建議**：若跌破重要均線支持，宜留意減倉避險。\n"
-            f"- **新手觀望者**：建議等待股價重回 20MA (`${ma20_val:.2f}`) 上方並站穩後，再尋找右側交易買點。"
+            f"- **新手觀望者**：建議等待股價重回 20MA (`${ma20_val:.2f}`) 上方並站穩後，再尋找右側交易買點。\n\n"
+            f"**📊 判定依據與技術細節：**\n{reasons_text}"
         )
     else:
-        decision_box = st.info
-        action_title = "🟡 **建議：【中性觀望／等待突破】**"
-        action_detail = (
+        st.info(
+            f"#### 🟡 **建議：【中性觀望／等待突破】**\n\n"
             f"**操作策略**：目前多空力量均衡，市場正在尋找方向。\n\n"
-            f"- **觀望重點**：密切留意是否能放量突破上方阻力，或是否跌破下方 20MA (`${ma20_val:.2f}`) 支持。"
+            f"- **觀望重點**：密切留意是否能放量突破上方阻力，或是否跌破下方 20MA (`${ma20_val:.2f}`) 支持。\n\n"
+            f"**📊 判定依據與技術細節：**\n{reasons_text}"
         )
-
-    # 顯示評估結果框
-    with decision_box():
-        st.markdown(f"#### {action_title}")
-        st.markdown(action_detail)
-        st.markdown("**📊 判定依據與技術細節：**")
-        for r in reasons:
-            st.markdown(f"- {r}")
-
-    st.divider()
-
-    # --- 6. 互動圖表：K線 + 均線 + RSI ---
-    fig = make_subplots(
-        rows=2, cols=1, 
-        shared_xaxes=True, 
-        vertical_spacing=0.03, 
-        row_heights=[0.7, 0.3],
-        subplot_titles=(f"{symbol} 走勢圖與均線 ({time_frame})", "RSI 指標")
-    )
-
-    x_axis = df.index.strftime('%Y-%m-%d %H:%M') if 'm' in selected_config['interval'] or 'h' in selected_config['interval'] else df.index.strftime('%Y-%m-%d')
-
-    fig.add_trace(go.Candlestick(x=x_axis, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='K線'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=x_axis, y=df['MA20'], mode='lines', name='20MA', line=dict(color='orange', width=1.5)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=x_axis, y=df['MA50'], mode='lines', name='50MA', line=dict(color='blue', width=1.5)), row=1, col=1)
-
-    fig.add_trace(go.Scatter(x=x_axis, y=df['RSI'], mode='lines', name='RSI', line=dict(color='purple', width=1.5)), row=2, col=1)
-    fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
-    fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
-
-    fig.update_xaxes(type='category') # 徹底藏起無交易的週末空缺日
-    fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=600)
-    
-    st.plotly_chart(fig, width='stretch')
-
-else:
-    st.error("無法抓取數據，請檢查股票代號或該時間週期是否有交易資料。")
 
 # --- 7. 💬 自由提問 AI 助手 ---
 st.divider()
