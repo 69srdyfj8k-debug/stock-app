@@ -178,7 +178,7 @@ if page == "📊 總覽、新聞彙整與提問":
                 signal_color = "green"
             elif price_ok and not health_ok:
                 buy_signal = "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)"
-                signal_color = "yellow"
+                signal_color = "orange"
             else:
                 buy_signal = "🔴 建議觀望 / 暫不入手 (Overvalued / Wait for Dip)"
                 signal_color = "red"
