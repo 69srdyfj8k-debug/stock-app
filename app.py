@@ -160,15 +160,15 @@ if page == "📊 總覽、新聞與提問助手":
                 else:
                     st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
         else:
-            st.write("ūk暫無最新新聞數據。")
+            st.write("暫無最新新聞數據。")
 
         st.divider()
 
         # ==========================================
-        # 💬 本地智能提問助手（免 API 聊天框）
+        # 💬 本地智能提問助手（100% 免 API）
         # ==========================================
         st.subheader("💬 股票數據提問助手 (本地智能答題)")
-        st.caption("你可以隨便輸入關鍵字提問，例如：`價格`、`支持位`、`RSI`、`止損`、`最高價` 等。")
+        st.caption("你可以隨便輸入關鍵字提問，例如：`價格`、`支持位`、`RSI`、`止損`、`新聞` 等。")
 
         if "messages" not in st.session_state:
             st.session_state.messages = []
