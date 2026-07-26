@@ -12,7 +12,7 @@ page = st.sidebar.radio("選擇頁面：", ["📊 總覽、新聞彙整與提問
 
 st.sidebar.divider()
 st.sidebar.header("⚙️ 參數設定")
-col_search, col_margin = st.columns([2, 1])
+st.col_search, col_margin = st.columns([2, 1])
 with col_search:
     ticker_symbol = st.text_input("輸入股票代號 (美股如 AAPL / NVDA，港股如 0005.HK / 9988.HK):", "AAPL").upper()
 with col_margin:
