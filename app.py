@@ -358,11 +358,20 @@ elif page == "📈 技術走勢圖表":
             row=2, col=1
         )
         
+        # 上下兩個子圖（K線圖同 RSI）各自自動對齊高度
         fig.update_yaxes(
             gridcolor='rgba(255, 255, 255, 0.1)',
-            autorange=True,
-            fixedrange=False  # 👈 鎖定 Y 軸！上下拖曳唔會再飛走，只保留 X 軸左右平移
-)
+            autorange=True,        # 自動貼合數據高度
+            fixedrange=False,       # 允許 Plotly 計算範圍
+            row=1, col=1
+        )
+        
+        fig.update_yaxes(
+            gridcolor='rgba(255, 255, 255, 0.1)',
+            range=[0, 100],        # RSI 固定喺 0-100 之間，避免爆框
+            fixedrange=True,       # RSI 副圖鎖定高度
+            row=2, col=1
+        )
 
         # 全局風格：設定十字準星 (Crosshair) & 隱藏下方的 RangeSlider (讓版面更大更順手)
         fig.update_layout(
