@@ -150,10 +150,10 @@ if page == "📊 總覽、新聞彙整與提問":
             # 判定條件 1: 價格折讓
             if current_price <= max_buy_price:
                 price_ok = True
-                reasons.append(f"✅ 現價 (${current_price}) 低於安全買入上限價 (${max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
+                reasons.append(f"✅ 現價 (＄{current_price}) 低於安全買入上限價 (＄{max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
             else:
                 price_ok = False
-                reasons.append(f"⚠️ 現價 (${current_price}) 高於安全買入上限價 (${max_buy_price:.2f})，估值尚未充分折讓。")
+                reasons.append(f"⚠️ 現價 (＄{current_price}) 高於安全買入上限價 (＄{max_buy_price:.2f})，估值尚未充分折讓。")
     
                 
             # 判定條件 2: 財務健康
