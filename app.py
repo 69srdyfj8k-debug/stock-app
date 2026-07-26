@@ -371,7 +371,14 @@ elif page == "📈 技術走勢圖表":
         )
 
         # 順手渲染圖表
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+    fig, 
+    use_container_width=True,
+    config={
+        'scrollZoom': False,  # 停用滾輪/雙指縮放
+        'displayModeBar': False,  # 直接隱藏上方個工具列 (Zoom in/out, Pan, Reset 等按鈕)
+    }
+)
         
     else:
         st.error("暫無走勢圖數據。")
