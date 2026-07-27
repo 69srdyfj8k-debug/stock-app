@@ -234,34 +234,40 @@ if page == "📊 總覽、新聞彙整與提問":
         # ==========================================
         # 📰 新聞分類彙整 + 自動 Conclusion 結語
         # ==========================================
-        st.subheader("📰 實時新聞 Grouping 與智能市場結語 (Conclusion)")
+        # 1. 定義每 2 小時 (7200秒) 自動刷新的 Fragment
+        @st.fragment(run_every="7200s")
+        def render_live_news_section(grouped_news, news_count):
+            st.subheader("📰 實時新聞 Grouping 與智能市場結語 (Conclusion)")
 
-        news_conclusion = "市場焦點總結：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
-        if news_count > 0:
-            for category, items in grouped_news.items():
-                if items:
-                    with st.expander(f"{category} ({len(items)} 條)", expanded=True):
-                        for item in items:
-                            if item["url"]:
-                                st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
-                            else:
-                                st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
-
-            st.markdown("")
-            
-            if len(grouped_news["🎯 大行評級與目標價"]) > 0:
-                news_conclusion = f"市場焦點總結：近期市場集中關注該股嘅大行評級與目標價變動，機構觀點對股價方向具備較大引導作用。"
-            elif len(grouped_news["💰 業績與財務數據"]) > 0:
-                news_conclusion = f"市場焦點總結：近期新聞主要圍繞業績與交付數據，財報表現係短期股價波動嘅核心催化劑。"
-            elif len(grouped_news["⚖️ 宏觀政策與法規"]) > 0:
-                news_conclusion = f"市場焦點總結：近期受到宏觀政策、利率或法律訴訟等消息影響，投資者需提防系統性風險。"
-
-            st.info(news_conclusion)
-        else:
-            st.write("暫無最新新聞數據。")
-
-        st.divider()
-
+            news_conclusion = "市場焦點總結：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
+            if news_count > 0:
+                for category, items in grouped_news.items():
+                    if items:
+                        with st.expander(f"{category} ({len(items)} 條)", expanded=True):
+                            for item in items:
+                                if item["url"]:
+                                    st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
+                                else:
+                                    st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
+    
+                st.markdown("")
+                
+                if len(grouped_news["🎯 大行評級與目標價"]) > 0:
+                    news_conclusion = f"市場焦點總結：近期市場集中關注該股嘅大行評級與目標價變動，機構觀點對股價方向具備較大引導作用。"
+                elif len(grouped_news["💰 業績與財務數據"]) > 0:
+                    news_conclusion = f"市場焦點總結：近期新聞主要圍繞業績與交付數據，財報表現係短期股價波動嘅核心催化劑。"
+                elif len(grouped_news["⚖️ 宏觀政策與法規"]) > 0:
+                    news_conclusion = f"市場焦點總結：近期受到宏觀政策、利率或法律訴訟等消息影響，投資者需提防系統性風險。"
+    
+                st.info(news_conclusion)
+            else:
+                st.write("暫無最新新聞數據。")
+    
+            st.divider()
+        
+        # 2. 在原位置呼叫這個 Function（記得傳入你的 grouped_news 同 news_count 變數）
+        render_live_news_section(grouped_news, news_count)
+        
         # ==========================================
         # 💬 本地智能提問助手（原汁原味小白提示）
         # ==========================================
