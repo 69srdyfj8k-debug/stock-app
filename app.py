@@ -5,7 +5,6 @@ from plotly.subplots import make_subplots
 from datetime import date
 import pandas as pd
 
-# ⚠️ 必須是程式碼中執行的第一個 Streamlit 指令！
 st.set_page_config(
     page_title="Stock Analysis System / 股票分析系統",
     page_icon="📈",
@@ -76,9 +75,8 @@ translations = {
         "chart_main_title": "走勢圖與移動平均線",
         "chart_rsi_title": "RSI (14) 相對強弱指標",
         "k_line": "K線",
-        "data_error": "無法抓取數據，請檢查股票代號是否正確。",
+        "data_error": "無法抓取數據，請檢查股票代號是否正確，或嘗試換個時間週期（Timeframe）。",
         "no_chart_data": "暫無走勢圖數據。",
-        # 新聞類別
         "cat_earnings": "💰 業績與財務數據",
         "cat_ratings": "🎯 大行評級與目標價",
         "cat_macro": "⚖️ 宏觀政策與法規",
@@ -135,9 +133,8 @@ translations = {
         "chart_main_title": "Price Trend & Moving Averages",
         "chart_rsi_title": "RSI (14) Relative Strength Index",
         "k_line": "Candlestick",
-        "data_error": "Failed to fetch data. Please check if the ticker symbol is correct.",
+        "data_error": "Failed to fetch data. Please check ticker symbol or try changing timeframe.",
         "no_chart_data": "No chart data available.",
-        # News Categories
         "cat_earnings": "💰 Earnings & Financials",
         "cat_ratings": "🎯 Analyst Ratings & Targets",
         "cat_macro": "⚖️ Macro & Policy",
@@ -145,20 +142,18 @@ translations = {
     }
 }
 
-# --- 側邊欄：語言切換 ---
+# --- 側邊欄 ---
 lang = st.sidebar.radio("🌐 語言 / Language", ["繁體中文", "English"])
 t = translations[lang]
 
 st.sidebar.divider()
-
-# --- 側邊欄：分頁與時間週期設定 ---
 st.sidebar.header(t["menu_header"])
 page_choice = st.sidebar.radio(t["page_select"], [t["p1_title"], t["p2_title"]])
 
 st.sidebar.divider()
 st.sidebar.header(t["settings_header"])
 
-symbol = st.sidebar.text_input(t["symbol_label"], value="TSLA").upper()
+symbol = st.sidebar.text_input(t["symbol_label"], value="AAPL").upper().strip()
 required_margin = st.sidebar.slider(t["margin_label"], 5, 40, 20) / 100
 st.sidebar.caption(t["margin_caption"])
 
@@ -177,22 +172,30 @@ config_mapping = {
     "1mo": {"period": "max", "interval": "1mo"}
 }
 
-selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
+selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1d"})
 
-# --- 抓取數據 ---
+# --- 安全抓取數據 ---
 stock = yf.Ticker(symbol)
 info = {}
 df = pd.DataFrame()
 
 try:
-    info = stock.info
-    df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
-    df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+    info = stock.info or {}
 except Exception:
-    pass
+    info = {}
 
-# --- 計算技術指標 ---
-if not df.empty:
+try:
+    df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
+    if df is not None and not df.empty:
+        df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+except Exception:
+    df = pd.DataFrame()
+
+# --- 核心邏輯判斷：數據是否抓取成功 ---
+if df.empty or len(df) < 2:
+    st.error(t["data_error"])
+else:
+    # --- 計算技術指標 ---
     df.index = pd.to_datetime(df.index)
     df['MA20'] = df['Close'].rolling(window=20).mean()
     df['MA50'] = df['Close'].rolling(window=50).mean()
@@ -204,66 +207,72 @@ if not df.empty:
     df['RSI'] = 100 - (100 / (1 + rs))
 
     latest_close = df['Close'].iloc[-1]
-    prev_close = df['Close'].iloc[-2] if len(df) > 1 else latest_close
+    prev_close = df['Close'].iloc[-2]
     price_change = latest_close - prev_close
     pct_change = (price_change / prev_close) * 100
-    latest_rsi = df['RSI'].dropna().iloc[-1] if not df['RSI'].dropna().empty else 50
-    ma20_val = df['MA20'].dropna().iloc[-1] if not df['MA20'].dropna().empty else latest_close
-    ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
+    
+    rsi_series = df['RSI'].dropna()
+    latest_rsi = rsi_series.iloc[-1] if not rsi_series.empty else 50.0
+
+    ma20_series = df['MA20'].dropna()
+    ma20_val = ma20_series.iloc[-1] if not ma20_series.empty else latest_close
+
+    ma50_series = df['MA50'].dropna()
+    ma50_val = ma50_series.iloc[-1] if not ma50_series.empty else latest_close
+
     high_period = df['High'].max()
     low_period = df['Low'].min()
 
-# --- 收集並 Group 埋新聞 ---
-grouped_news = {
-    t["cat_earnings"]: [],
-    t["cat_ratings"]: [],
-    t["cat_macro"]: [],
-    t["cat_general"]: []
-}
+    # --- 新聞抓取 ---
+    grouped_news = {
+        t["cat_earnings"]: [],
+        t["cat_ratings"]: [],
+        t["cat_macro"]: [],
+        t["cat_general"]: []
+    }
+    news_count = 0
+    try:
+        raw_news = getattr(stock, 'news', []) or []
+        for item in raw_news[:6]:
+            content = item.get('content', item) if isinstance(item, dict) else item
+            title = content.get('title')
+            provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
+            click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
+            
+            if title:
+                news_count += 1
+                t_lower = title.lower()
+                if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps", "sales"]):
+                    grouped_news[t["cat_earnings"]].append({"title": title, "publisher": provider, "url": click_url})
+                elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst", "outperform", "overweight"]):
+                    grouped_news[t["cat_ratings"]].append({"title": title, "publisher": provider, "url": click_url})
+                elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff", "court", "ban"]):
+                    grouped_news[t["cat_macro"]].append({"title": title, "publisher": provider, "url": click_url})
+                else:
+                    grouped_news[t["cat_general"]].append({"title": title, "publisher": provider, "url": click_url})
+    except Exception:
+        pass
 
-news_count = 0
-try:
-    for item in getattr(stock, 'news', [])[:6]:
-        content = item.get('content', item) if isinstance(item, dict) else item
-        title = content.get('title')
-        provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
-        click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
-        
-        if title:
-            news_count += 1
-            t_lower = title.lower()
-            if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps", "sales"]):
-                grouped_news[t["cat_earnings"]].append({"title": title, "publisher": provider, "url": click_url})
-            elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst", "outperform", "overweight"]):
-                grouped_news[t["cat_ratings"]].append({"title": title, "publisher": provider, "url": click_url})
-            elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff", "court", "ban"]):
-                grouped_news[t["cat_macro"]].append({"title": title, "publisher": provider, "url": click_url})
-            else:
-                grouped_news[t["cat_general"]].append({"title": title, "publisher": provider, "url": click_url})
-except Exception:
-    pass
+    # --- 休市提示 ---
+    today = date.today()
+    is_weekend = today.weekday() in [5, 6]
+    last_data_date = df.index[-1].date()
 
-# --- 休市提示 ---
-today = date.today()
-is_weekend = today.weekday() in [5, 6]
-last_data_date = df.index[-1].date() if not df.empty else None
+    if is_weekend:
+        st.warning(t["weekend_warn"])
+    elif last_data_date < today:
+        st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
 
-if is_weekend:
-    st.warning(t["weekend_warn"])
-elif last_data_date and last_data_date < today:
-    st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
+    # --- 頂部提示：Timeframe 指引 ---
+    with st.expander(t["guide_title"], expanded=False):
+        st.markdown(t["guide_content"])
 
-# --- 頂部提示：Timeframe 指引 ---
-with st.expander(t["guide_title"], expanded=False):
-    st.markdown(t["guide_content"])
+    # ==========================================
+    # 📄 第一頁：總覽、新聞彙整與提問
+    # ==========================================
+    if page_choice == t["p1_title"]:
+        st.title(t["overview_title"].format(symbol))
 
-# ==========================================
-# 📄 第一頁：總覽、新聞彙整與提問
-# ==========================================
-if page_choice == t["p1_title"]:
-    st.title(t["overview_title"].format(symbol))
-
-    if not df.empty:
         company_name = info.get('longName', symbol)
         sector = info.get('sector', 'N/A')
         market_cap = info.get('marketCap', 0)
@@ -272,7 +281,7 @@ if page_choice == t["p1_title"]:
         recommendation = str(info.get('recommendationKey', 'N/A')).upper()
 
         st.subheader(f"🏢 {company_name}")
-        cap_str = f"${market_cap / 1e9:.2f}B" if market_cap > 1e9 else f"${market_cap / 1e6:.2f}M" if market_cap > 0 else "N/A"
+        cap_str = f"${market_cap / 1e9:.2f}B" if isinstance(market_cap, (int, float)) and market_cap > 1e9 else (f"${market_cap / 1e6:.2f}M" if isinstance(market_cap, (int, float)) and market_cap > 0 else "N/A")
         
         col_a, col_b, col_c, col_d = st.columns(4)
         col_a.write(f"**{t['sector']}** {sector}")
@@ -290,67 +299,55 @@ if page_choice == t["p1_title"]:
 
         st.divider()
 
-        # --- 入手決策 Engine ---
+        # --- 入手決策 Engine (含 Fallback P/E 估值) ---
         st.subheader(t["decision_title"])
-        
         reasons = []
-        target_mean_price = info.get('targetMeanPrice', None)
-        roe = info.get('returnOnEquity', None)
-        fcf = info.get('freeCashflow', None)
+        
+        target_mean_price = info.get('targetMeanPrice')
+        eps = info.get('forwardEps') or info.get('trailingEps')
+        pe = info.get('forwardPE') or info.get('trailingPE')
+        roe = info.get('returnOnEquity')
+        fcf = info.get('freeCashflow')
 
-        if target_mean_price:
+        fair_value = None
+        if target_mean_price and target_mean_price > 0:
             fair_value = target_mean_price
+        elif eps and pe and eps > 0 and pe > 0:
+            fair_value = eps * pe
+
+        if fair_value:
             max_buy_price = fair_value * (1 - required_margin)
             current_price = round(latest_close, 2)
             
-            # 價格折讓
             if current_price <= max_buy_price:
                 price_ok = True
-                if lang == "繁體中文":
-                    reasons.append(f"✅ 現價 (＄{current_price}) 低於安全買入上限價 (＄{max_buy_price:.2f})，具備 {required_margin*100:.0f}% 以上安全邊際。")
-                else:
-                    reasons.append(f"✅ Current price (${current_price}) is below max buy price (${max_buy_price:.2f}), offering >{required_margin*100:.0f}% margin of safety.")
+                reasons.append(f"✅ 現價 (${current_price}) 低於買入上限價 (${max_buy_price:.2f})，安全邊際達 {required_margin*100:.0f}%。" if lang == "繁體中文" else f"✅ Price (${current_price}) below max buy price (${max_buy_price:.2f}), offering >{required_margin*100:.0f}% margin of safety.")
             else:
                 price_ok = False
-                if lang == "繁體中文":
-                    reasons.append(f"⚠️ 現價 (＄{current_price}) 高於安全買入上限價 (＄{max_buy_price:.2f})，估值尚未充分折讓。")
-                else:
-                    reasons.append(f"⚠️ Current price (${current_price}) exceeds max buy price (${max_buy_price:.2f}). Valuation is not sufficiently discounted.")
+                reasons.append(f"⚠️ 現價 (${current_price}) 高於買入上限價 (${max_buy_price:.2f})，估值尚無充分折讓。" if lang == "繁體中文" else f"⚠️ Price (${current_price}) exceeds max buy price (${max_buy_price:.2f}). Valuation not sufficiently discounted.")
 
-            # 財務健康
             health_ok = True
             roe_display = f"{roe * 100:.1f}%" if roe is not None else "N/A"
-            
             if roe and roe > 0.15:
-                if lang == "繁體中文":
-                    reasons.append(f"✅ ROE ({roe_display}) 表現優秀 ( > 15%)，具備高資本回報率/護城河。")
-                else:
-                    reasons.append(f"✅ Strong ROE ({roe_display} > 15%), indicating solid capital returns.")
+                reasons.append(f"✅ ROE ({roe_display} > 15%) 表現優秀。" if lang == "繁體中文" else f"✅ Strong ROE ({roe_display} > 15%).")
             else:
                 health_ok = False
-                if lang == "繁體中文":
-                    reasons.append(f"⚠️ ROE ({roe_display}) 偏低，需注意企業獲利能力。")
-                else:
-                    reasons.append(f"⚠️ Low ROE ({roe_display}); profitability needs monitoring.")
+                reasons.append(f"⚠️ ROE ({roe_display}) 偏低。" if lang == "繁體中文" else f"⚠️ Low ROE ({roe_display}).")
                 
             if fcf and fcf > 0:
-                reasons.append("✅ Free Cash Flow (FCF) is positive." if lang == "English" else "✅ 自由現金流 (FCF) 為正，財務狀況健康。")
+                reasons.append("✅ 自由現金流 (FCF) 為正。" if lang == "繁體中文" else "✅ Free Cash Flow (FCF) is positive.")
             else:
-                reasons.append("⚠️ Free Cash Flow is weak/negative." if lang == "English" else "⚠️ 自由現金流偏弱或為負，營運風險較高。")
+                reasons.append("⚠️ 自由現金流偏弱或為負。" if lang == "繁體中文" else "⚠️ Free Cash Flow is weak/negative.")
                 
-            # 綜合訊號
             if price_ok and health_ok:
-                buy_signal = "🟢 Buy Candidate" if lang == "English" else "🟢 考慮入手 (Buy Candidate)"
-                signal_color = "green"
+                buy_signal, signal_color = ("🟢 考慮入手 (Buy Candidate)" if lang == "繁體中文" else "🟢 Buy Candidate"), "green"
             elif price_ok and not health_ok:
-                buy_signal = "🟡 High Risk / Speculative Buy" if lang == "English" else "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)"
-                signal_color = "orange"
+                buy_signal, signal_color = ("🟡 估值便宜但基本面一般 (Speculative Buy)" if lang == "繁體中文" else "🟡 Speculative Buy"), "orange"
             else:
-                buy_signal = "🔴 Overvalued / Wait for Dip" if lang == "English" else "🔴 建議觀望 / 暫不入手 (Overvalued / Wait for Dip)"
-                signal_color = "red"
+                buy_signal, signal_color = ("🔴 建議觀望 / 暫不入手 (Wait for Dip)" if lang == "繁體中文" else "🔴 Wait for Dip"), "red"
                 
             st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-            st.write(f"**{t['fair_val']}** ＄{fair_value:.2f} | **{t['max_buy']}** ＄{max_buy_price:.2f}")
+            st.write(f"**{t['fair_val']}** ${fair_value:.2f} | **{t['max_buy']}** ${max_buy_price:.2f}")
             
             with st.expander(t["view_buy_reasons"], expanded=True):
                 for reason in reasons:
@@ -362,7 +359,6 @@ if page_choice == t["p1_title"]:
 
         # --- 賣出/持股診斷 ---
         st.subheader(t["sell_diag_title"])
-
         current_price = round(latest_close, 2)
         c1, c2 = st.columns(2)
         with c1:
@@ -373,38 +369,23 @@ if page_choice == t["p1_title"]:
         if buy_cost > 0:
             pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
             pnl_color = "green" if pnl_pct >= 0 else "red"
-            
-            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] ({buy_cost:.2f} ➔ ${current_price:.2f})")
+            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (${buy_cost:.2f} ➔ ${current_price:.2f})")
 
             stop_loss_price = buy_cost * (1 - stop_loss_pct)
-            target_sell_price = target_mean_price if target_mean_price else buy_cost * 1.2
+            target_sell_price = target_price if isinstance(target_price, (int, float)) else buy_cost * 1.2
 
             st.markdown("---")
             sell_reasons = []
 
             if current_price <= stop_loss_price:
-                sell_signal = "🔴 SELL / Stop Loss" if lang == "English" else "🔴 觸及止蝕點 (SELL / Stop Loss)"
-                sell_color = "red"
-                if lang == "繁體中文":
-                    sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿個人止蝕線 (${stop_loss_price:.2f}，-{stop_loss_pct*100:.0f}%)，建議嚴格執行止蝕規避風險。")
-                else:
-                    sell_reasons.append(f"❌ Price (${current_price:.2f}) dropped below stop-loss (${stop_loss_price:.2f}, -{stop_loss_pct*100:.0f}%). Consider selling to limit loss.")
-            
+                sell_signal, sell_color = ("🔴 觸及止蝕點 (SELL / Stop Loss)" if lang == "繁體中文" else "🔴 SELL / Stop Loss"), "red"
+                sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿止蝕線 (${stop_loss_price:.2f})。" if lang == "繁體中文" else f"❌ Price (${current_price:.2f}) below stop-loss (${stop_loss_price:.2f}).")
             elif current_price >= target_sell_price:
-                sell_signal = "🟢 TRIM / Take Profit" if lang == "English" else "🟢 達到目標價 (TRIM / Take Profit)"
-                sell_color = "green"
-                if lang == "繁體中文":
-                    sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標估值線 (${target_sell_price:.2f})，建議分批獲利減倉鎖定利潤。")
-                else:
-                    sell_reasons.append(f"🎉 Price (${current_price:.2f}) reached target (${target_sell_price:.2f}). Consider taking partial profits.")
-
+                sell_signal, sell_color = ("🟢 達到目標價 (TRIM / Take Profit)" if lang == "繁體中文" else "🟢 TRIM / Take Profit"), "green"
+                sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標價 (${target_sell_price:.2f})。" if lang == "繁體中文" else f"🎉 Price (${current_price:.2f}) reached target (${target_sell_price:.2f}).")
             else:
-                sell_signal = "🟡 HOLD" if lang == "English" else "🟡 繼續持有 (HOLD)"
-                sell_color = "orange"
-                if lang == "繁體中文":
-                    sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間，基本面正常，可繼續 Holding。")
-                else:
-                    sell_reasons.append(f"✅ Price is between stop-loss (${stop_loss_price:.2f}) and target (${target_sell_price:.2f}). Fundamentals intact, hold position.")
+                sell_signal, sell_color = ("🟡 繼續持有 (HOLD)" if lang == "繁體中文" else "🟡 HOLD"), "orange"
+                sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間。" if lang == "繁體中文" else f"✅ Price between stop-loss (${stop_loss_price:.2f}) and target (${target_sell_price:.2f}).")
 
             st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
             st.write(f"**{t['stop_price_label']}**: ${stop_loss_price:.2f} | **{t['target_sell_label']}**: ${target_sell_price:.2f}")
@@ -417,8 +398,7 @@ if page_choice == t["p1_title"]:
         @st.fragment(run_every="7200s")
         def render_live_news_section(grouped_news, news_count):
             st.subheader(t["news_header"])
-
-            default_summary = "Market Summary: News flow is normal without strong single-driver sentiment." if lang == "English" else "市場焦點總結：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。"
+            default_summary = "Market Summary: General market dynamics." if lang == "English" else "市場焦點總結：目前新聞流向以日常動態為主。"
             news_conclusion = default_summary
 
             if news_count > 0:
@@ -430,25 +410,21 @@ if page_choice == t["p1_title"]:
                                     st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
                                 else:
                                     st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
-    
                 st.markdown("")
-                
                 if len(grouped_news[t["cat_ratings"]]) > 0:
-                    news_conclusion = "Market Summary: Heavy coverage on institutional rating changes and price targets." if lang == "English" else "市場焦點總結：近期市場集中關注該股嘅大行評級與目標價變動，機構觀點對股價方向具備較大引導作用。"
+                    news_conclusion = "Market Summary: Heavy coverage on institutional analyst ratings." if lang == "English" else "市場焦點總結：近期市場集中關注大行評級與目標價變動。"
                 elif len(grouped_news[t["cat_earnings"]]) > 0:
-                    news_conclusion = "Market Summary: News mainly focuses on earnings and operational delivery results." if lang == "English" else "市場焦點總結：近期新聞主要圍繞業績與交付數據，財報表現係短期股價波動嘅核心催化劑。"
+                    news_conclusion = "Market Summary: Focus on corporate earnings and financial metric updates." if lang == "English" else "市場焦點總結：近期新聞主要圍繞業績與交付數據。"
                 elif len(grouped_news[t["cat_macro"]]) > 0:
-                    news_conclusion = "Market Summary: Driven by macro policies, interest rates, or regulation risks." if lang == "English" else "市場焦點總結：近期受到宏觀政策、利率或法律訴訟等消息影響，投資者需提防系統性風險。"
-    
+                    news_conclusion = "Market Summary: Driven by macro policies or legal/regulatory news." if lang == "English" else "市場焦點總結：近期受到宏觀政策或法律訴訟影響。"
                 st.info(news_conclusion)
             else:
                 st.write(t["no_news"])
-    
             st.divider()
             return news_conclusion
-        
+
         news_summary_text = render_live_news_section(grouped_news, news_count)
-        
+
         # --- 本地智能提問助手 ---
         st.subheader(t["assistant_title"])
         st.markdown(f"* **{t['latest_price']}**：${latest_close:.2f} ({pct_change:+.2f}%)")
@@ -469,39 +445,35 @@ if page_choice == t["p1_title"]:
                 st.write(user_prompt)
 
             q = user_prompt.lower()
-            
             if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
                 if latest_close > ma20_val:
-                    response = f"Entry check: Price **${latest_close:.2f}** is above 20MA (**${ma20_val:.2f}**). Bullish setup, keep risk stops tight." if lang == "English" else f"入市分析：現價 **＄{latest_close:.2f}** 企喺 20MA (**＄{ma20_val:.2f}**) 上方。短線技術面偏正，但需做好防守。"
+                    response = f"Price **${latest_close:.2f}** above 20MA (**${ma20_val:.2f}**). Bullish setup." if lang == "English" else f"現價 **＄{latest_close:.2f}** 企喺 20MA (**＄{ma20_val:.2f}**) 上方，短線偏正。"
                 else:
-                    response = f"Entry check: Price **${latest_close:.2f}** is below 20MA (**${ma20_val:.2f}**). Trend is weak, wait for consolidation." if lang == "English" else f"入市分析：現價 **＄{latest_close:.2f}** 低於 20MA (**＄{ma20_val:.2f}**)，走勢偏弱。建議等站穩均線再部署。"
+                    response = f"Price **${latest_close:.2f}** below 20MA (**${ma20_val:.2f}**). Weak trend." if lang == "English" else f"現價 **＄{latest_close:.2f}** 低於 20MA (**＄{ma20_val:.2f}**)，走勢偏弱。"
             elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
-                response = f"{symbol} latest price: **${latest_close:.2f}** ({pct_change:+.2f}%)."
+                response = f"{symbol}: **${latest_close:.2f}** ({pct_change:+.2f}%)."
             elif any(k in q for k in ["support", "ma20", "20ma", "支持"]):
-                response = f"20MA support: **${ma20_val:.2f}** | 50MA support: **${ma50_val:.2f}**."
+                response = f"20MA: **${ma20_val:.2f}** | 50MA: **${ma50_val:.2f}**."
             elif any(k in q for k in ["stop", "risk", "止損", "走"]):
-                response = f"Risk management line: 50MA (**${ma50_val:.2f}**) or period low (**${low_period:.2f}**)."
+                response = f"Risk line: 50MA (**${ma50_val:.2f}**) / Period Low (**${low_period:.2f}**)."
             elif any(k in q for k in ["rsi", "超買"]):
-                response = f"RSI(14): **{latest_rsi:.1f}** (>70 overbought, <30 oversold)."
+                response = f"RSI(14): **{latest_rsi:.1f}**."
             elif any(k in q for k in ["news", "新聞", "消息"]):
                 response = news_summary_text
             else:
-                response = f"Summary: Price=${latest_close:.2f} ({pct_change:+.2f}%) | 20MA=${ma20_val:.2f} | RSI={latest_rsi:.1f}."
+                response = f"Price=${latest_close:.2f} ({pct_change:+.2f}%) | 20MA=${ma20_val:.2f} | RSI={latest_rsi:.1f}."
 
             with st.chat_message("assistant"):
                 st.write(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
-    else:
-        st.error(t["data_error"])
 
-# ==========================================
-# 📈 第二頁 : 技術走勢圖表
-# ==========================================
-elif page_choice == t["p2_title"]:
-    st.title(t["chart_title"].format(symbol))
-    st.caption(t["chart_caption"].format(time_frame))
+    # ==========================================
+    # 📈 第二頁 : 技術走勢圖表
+    # ==========================================
+    elif page_choice == t["p2_title"]:
+        st.title(t["chart_title"].format(symbol))
+        st.caption(t["chart_caption"].format(time_frame))
 
-    if not df.empty:
         fig = make_subplots(
             rows=2, cols=1, 
             shared_xaxes=True, 
@@ -585,5 +557,3 @@ elif page_choice == t["p2_title"]:
                 'displaylogo': False
             }
         )
-    else:
-        st.error(t["no_chart_data"])
