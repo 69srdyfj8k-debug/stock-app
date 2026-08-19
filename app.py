@@ -287,9 +287,113 @@ else:
             roe_display = f"{roe * 100:.1f}%"
             if roe > 0.15:
                 reasons.append(f"✅ ROE ({roe_display} > 15%) 股東回報率優秀。" if lang == "繁體中文" else f"✅ Strong ROE ({roe_display} > 15%).")
-### The Fix
+            else:
+                health_ok = False
+                reasons.append(f"⚠️ ROE ({roe_display}) 表現一般。" if lang == "繁體中文" else f"⚠️ Low/Moderate ROE ({roe_display}).")
+        else:
+            reasons.append("ℹ️ 暫無 ROE 數據，主依價格折讓評估。" if lang == "繁體中文" else "ℹ️ ROE data unavailable.")
 
-If you intended to render a vertical pipe symbol (`|`), remove the backslash and the empty trailing braces:
+        if fcf and isinstance(fcf, (int, float)) and fcf > 0:
+            reasons.append("✅ 自由現金流 (FCF) 為正數。" if lang == "繁體中文" else "✅ Free Cash Flow is positive.")
 
-```python
-st.write(f"**{t['fair_val']}** ${fair_value:.2f} | **{t['max_buy']}** ${max_buy_price:.2f}")
+        reasons.append(f"📌 估值基準來源：`{valuation_source}`")
+
+        if price_ok and health_ok:
+            buy_signal, signal_color = ("🟢 考慮入手 (Buy Candidate)" if lang == "繁體中文" else "🟢 Buy Candidate"), "green"
+        elif price_ok and not health_ok:
+            buy_signal, signal_color = ("🟡 估值便宜但基本面偏弱 (Speculative Buy)" if lang == "繁體中文" else "🟡 Speculative Buy"), "orange"
+        else:
+            buy_signal, signal_color = ("🔴 建議觀望 / 暫不入手 (Wait for Dip)" if lang == "繁體中文" else "🔴 Wait for Dip"), "red"
+
+        st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
+        st.write(f"**{t['fair_val']}** ${fair_value:.2f} | **{t['max_buy']}** ${max_buy_price:.2f}")
+
+        with st.expander(t["view_buy_reasons"], expanded=True):
+            for reason in reasons:
+                st.markdown(f"- {reason}")
+
+        st.divider()
+
+        # 賣出/持股診斷
+        st.subheader(t["sell_diag_title"])
+        c1, c2 = st.columns(2)
+        with c1:
+            buy_cost = st.number_input(t["buy_cost_label"], min_value=0.0, value=float(current_price * 0.9), step=1.0)
+        with c2:
+            stop_loss_pct = st.slider(t["stop_loss_label"], 5, 30, 10) / 100
+
+        if buy_cost > 0:
+            pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
+            pnl_color = "green" if pnl_pct >= 0 else "red"
+            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (${buy_cost:.2f} ➔ ${current_price:.2f})")
+
+            stop_loss_price = buy_cost * (1 - stop_loss_pct)
+            target_sell_price = target_price if isinstance(target_price, (int, float)) and target_price > 0 else buy_cost * 1.2
+
+            st.markdown("---")
+            sell_reasons = []
+
+            if current_price <= stop_loss_price:
+                sell_signal, sell_color = ("🔴 觸及止蝕點 (SELL / Stop Loss)" if lang == "繁體中文" else "🔴 SELL / Stop Loss"), "red"
+                sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿止蝕線 (${stop_loss_price:.2f})。" if lang == "繁體中文" else f"❌ Price (${current_price:.2f}) below stop-loss (${stop_loss_price:.2f}).")
+            elif current_price >= target_sell_price:
+                sell_signal, sell_color = ("🟢 達到目標價 (TRIM / Take Profit)" if lang == "繁體中文" else "🟢 TRIM / Take Profit"), "green"
+                sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標價 (${target_sell_price:.2f})。" if lang == "繁體中文" else f"🎉 Price (${current_price:.2f}) reached target (${target_sell_price:.2f}).")
+            else:
+                sell_signal, sell_color = ("🟡 繼續持有 (HOLD)" if lang == "繁體中文" else "🟡 HOLD"), "orange"
+                sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間。" if lang == "繁體中文" else f"✅ Price between stop-loss (${stop_loss_price:.2f}) and target (${target_sell_price:.2f}).")
+
+            st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
+            st.write(f"**{t['stop_price_label']}**: ${stop_loss_price:.2f} | **{t['target_sell_label']}**: ${target_sell_price:.2f}")
+
+            with st.expander(t["view_sell_reasons"], expanded=True):
+                for sr in sell_reasons:
+                    st.write(sr)
+
+    # --- 🥈 Tab 2：📊 總覽與市場新聞 ---
+    with tab2:
+        st.title(t["overview_title"].format(symbol))
+
+        company_name = info.get('longName', symbol)
+        sector = info.get('sector', 'N/A')
+        market_cap = info.get('marketCap', 0)
+        pe_ratio = info.get('trailingPE', 'N/A')
+        target_price = info.get('targetMeanPrice', 'N/A')
+        recommendation = str(info.get('recommendationKey', 'N/A')).upper()
+
+        st.subheader(f"🏢 {company_name}")
+        cap_str = f"${market_cap / 1e9:.2f}B" if isinstance(market_cap, (int, float)) and market_cap > 1e9 else (f"${market_cap / 1e6:.2f}M" if isinstance(market_cap, (int, float)) and market_cap > 0 else "N/A")
+        
+        col_a, col_b, col_c, col_d = st.columns(4)
+        col_a.write(f"**{t['sector']}** {sector}")
+        col_b.write(f"**{t['market_cap']}** {cap_str}")
+        col_c.write(f"**{t['pe']}** {pe_ratio if isinstance(pe_ratio, str) else f'{pe_ratio:.2f}'}")
+        col_d.write(f"**{t['rating']}** {recommendation} ({t['target']}: ${target_price})")
+
+        st.divider()
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric(t["latest_price"], f"${latest_close:.2f}", f"{pct_change:+.2f}%")
+        col2.metric(t["ma20_support"], f"${ma20_val:.2f}")
+        col3.metric(t["ma50_support"], f"${ma50_val:.2f}")
+        col4.metric(t["rsi_val"], f"{latest_rsi:.1f}")
+
+        # K線圖
+        st.subheader("📈 價格走勢圖")
+        st.line_chart(df[['Close', 'MA20', 'MA50']])
+
+        st.divider()
+
+        # 市場新聞分類展示
+        st.subheader(t["news_header"])
+        if news_count > 0:
+            for cat, items in grouped_news.items():
+                if items:
+                    st.write(f"#### {cat}")
+                    for item in items:
+                        if item["url"]:
+                            st.markdown(f"- [{item['title']}]({item['url']}) — *{item['publisher']}*")
+                        else:
+                            st.markdown(f"- {item['title']} — *{item['publisher']}*")
+        else:
+            st.info(t["no_news"])
