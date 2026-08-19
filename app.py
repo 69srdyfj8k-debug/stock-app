@@ -166,7 +166,8 @@ with st.expander(t["guide_title"], expanded=False):
         with st.expander(t["weekend_warning"], expanded=False):
             st.markdown(t["weekend_warning"])
     elif last_data_date and last_data_date < today:
-        with st.expander(t["holiday_warning"].format(today=today, last_date=last_data_date))
+        with st.expander(t["holiday_warning"].format(today=today, last_date=last_data_date)):
+            st.markdown(t["holiday_warning"])
 
 st.markdown("---")
 
