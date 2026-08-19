@@ -161,14 +161,12 @@ ticker_symbol = st.session_state.ticker
 # ------------------------------------------
 # 1. TOP OF PAGE: Beginner's Guide Expander
 # ------------------------------------------
-with st.expander(t["guide_title"], expanded=False):
-    st.markdown(t["guide_content"])
 
 # Safely perform market holiday/weekend check after stock object is ready
 today = date.today()
 is_weekend = today.weekday() in [5, 6]
 last_data_date = df.index[-1].date() if not df.empty else None
-    
+
 #if is_weekend:
  #   with st.expander(t["weekend_warning"], expanded=False):
   #      st.markdown(t["weekend_detail"])
@@ -182,6 +180,9 @@ elif last_data_date and last_data_date < today:
  #   holiday_msg = t["holiday_warning"].format(today=today, last_date=last_data_date)
   #  with st.expander(holiday_msg, expanded=False):
    #     st.markdown(t["holiday_detail"])
+
+with st.expander(t["guide_title"], expanded=False):
+    st.markdown(t["guide_content"])
 
 st.markdown("---")
 
