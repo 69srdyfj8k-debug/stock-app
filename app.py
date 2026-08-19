@@ -1,3 +1,4 @@
+from datetime import date
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -20,7 +21,7 @@ translations = {
         "roe": "ROE",
         "tab_buy": "🟢 Buy Decision",
         "tab_sell": "🔴 Exit Diagnosis",
-        "tab_chart": "📊 Historical Chart",
+        "tab_chart": "📊 Technicals & News",
         "decision_header": "💡 Buy Decision & Valuation Analysis",
         "signal_buy": "🟢 Buy Candidate",
         "signal_spec": "🟡 High Risk / Speculative Buy",
@@ -48,8 +49,30 @@ translations = {
         "reason_target": "🎉 Current price (${:.2f}) reached target valuation (${:.2f}). Consider taking profits.",
         "reason_keep": "✅ Current price is between stop loss (${:.2f}) and target price (${:.2f}). Fundamentals remain intact; safe to hold.",
         "expander_sell": "🔍 View Exit Analysis Reasons",
-        "chart_header": "📊 Historical Price Trend",
-        "chart_title": "1-Year Candlestick Chart",
+        "timeframe_label": "⏱️ Select Timeframe",
+        "chart_title": "Candlestick Chart",
+        "guide_title": "💡 **Beginner's Guide: How to read different Timeframes?**",
+        "guide_content": """
+        * 🎯 **Core Principle**: **"Use longer timeframes (1d) for trend direction, shorter timeframes (15m/30m) for entry timing."**
+        * 🧭 **Step 1 (Trend)**: Check **`1 Day (1d)`** first. If 1d shows **🟢 Bullish**, the long-term trend is healthy.
+        * ⏱️ **Step 2 (Entry)**: Switch to **`15 Minutes (15m)`**. If short-term price pulls back to the 20MA support, it offers an optimal entry point.
+        * ⚠️ **Risk Warning**: If **`1 Day (1d)`** shows **🔴 Bearish**, short-term rallies on 15m are often brief bounces!
+        """,
+        "weekend_warning": "⚠️ **[Market Closed Warning]** Today is a weekend. Displaying latest trading day data.",
+        "holiday_warning": "📅 **[Market Closed/Non-Trading Day]** Market is closed or not open yet today ({today}). Latest data as of: `{last_date}`.",
+        "news_header": "📰 Real-time News Grouping & Market Sentiment Summary",
+        "cat_earnings": "💰 Earnings & Financials",
+        "cat_ratings": "🎯 Analyst Ratings & Targets",
+        "cat_macro": "⚖️ Macro & Policy",
+        "cat_general": "📌 General Market News",
+        "news_default_summary": "Market Focus Summary: News flow is balanced across general market updates.",
+        "news_ratings_summary": "Market Focus Summary: High concentration on institutional analyst ratings and target price revisions.",
+        "news_earnings_summary": "Market Focus Summary: Primary focus is on recent earnings performance and delivery metrics.",
+        "news_macro_summary": "Market Focus Summary: Affected by macro policies, interest rate outlook, or regulatory news. Beware of systematic risk.",
+        "no_news": "No recent news data available.",
+        "chat_header": "💬 Local Technical Assistant",
+        "chat_placeholder": "Ask key terms like: Support, RSI, Stop Loss, Current Price...",
+        "chat_hint": "Ask about: `Price`, `Support`, `Stop Loss`, or `News`!",
         "not_found": "Stock symbol not found. Please check your input."
     },
     "繁體中文": {
@@ -62,7 +85,7 @@ translations = {
         "roe": "ROE",
         "tab_buy": "🟢 買入/觀望決策",
         "tab_sell": "🔴 賣出/持股診斷",
-        "tab_chart": "📊 歷史走勢圖表",
+        "tab_chart": "📊 技術分析與新聞",
         "decision_header": "💡 入手決策與估值分析",
         "signal_buy": "🟢 考慮入手 (Buy Candidate)",
         "signal_spec": "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)",
@@ -90,8 +113,30 @@ translations = {
         "reason_target": "🎉 現價 (${:.2f}) 已達目標估值線 (${:.2f})，建議分批獲利減倉鎖定利潤。",
         "reason_keep": "✅ 現價於止蝕價 (${:.2f}) 與目標價 (${:.2f}) 之間，基本面正常，可繼續 Holding。",
         "expander_sell": "🔍 賣出診斷分析理由",
-        "chart_header": "📊 歷史走勢",
-        "chart_title": "近一年 K 線圖",
+        "timeframe_label": "⏱️ 選擇時間週期",
+        "chart_title": "K 線圖與均線指標",
+        "guide_title": "💡 **【小白指南】不同時間週期 (Timeframe) 的 AI 建議不一樣，該怎麼看？**",
+        "guide_content": """
+        * 🎯 **核心原則**：**「大週期 (1d) 定方向，小週期 (15m/30m) 找買點」**。
+        * 🧭 **步驟 1（看大方向）**：先切換至 **`1 天 (1d)`**。如果 1d 顯示 **🟢 偏多**，代表中長期大趨勢健康。
+        * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
+        * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！
+        """,
+        "weekend_warning": "⚠️ **【今日休市提示】** 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。",
+        "holiday_warning": "📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_date}`。",
+        "news_header": "📰 實時新聞 Grouping 與智能市場結語 (Conclusion)",
+        "cat_earnings": "💰 業績與財務數據",
+        "cat_ratings": "🎯 大行評級與目標價",
+        "cat_macro": "⚖️ 宏觀政策與法規",
+        "cat_general": "📌 一般市場動態",
+        "news_default_summary": "市場焦點總結：目前新聞流向以日常動態為主，未見單一極端消息主導市場情緒。",
+        "news_ratings_summary": "市場焦點總結：近期市場集中關注該股嘅大行評級與目標價變動，機構觀點對股價方向具備較大引導作用。",
+        "news_earnings_summary": "市場焦點總結：近期新聞主要圍繞業績與交付數據，財報表現係短期股價波動嘅核心催化劑。",
+        "news_macro_summary": "市場焦點總結：近期受到宏觀政策、利率或法律訴訟等消息影響，投資者需提防系統性風險。",
+        "no_news": "暫無最新新聞數據。",
+        "chat_header": "💬 本地智能提問助手",
+        "chat_placeholder": "輸入你想了解的關鍵字，例如：支持位、RSI、止損、現價 等。",
+        "chat_hint": "你可以試下問：`現價`、`支持位`、`止損` 或 `新聞` ！",
         "not_found": "查無此股票代號，請檢查輸入是否正確。"
     }
 }
@@ -100,7 +145,7 @@ translations = {
 lang = st.sidebar.radio("🌐 Select Language / 選擇語言", ["English", "繁體中文"])
 t = translations[lang]
 
-# Main UI
+# Main UI Title
 st.title(t["title"])
 
 col_search, col_margin = st.columns([2, 1])
@@ -123,7 +168,7 @@ if ticker_symbol:
         fcf = info.get('freeCashflow', 0)
         target_mean_price = info.get('targetMeanPrice', None)
 
-        # Key Metrics (Always visible at top)
+        # Key Metrics (Top)
         st.markdown("---")
         m1, m2, m3, m4 = st.columns(4)
         m1.metric(t["current_price"], f"{current_price} {currency}")
@@ -133,11 +178,11 @@ if ticker_symbol:
 
         st.markdown("---")
 
-        # 🔽 創建 3 個獨立的分頁 (Tabs)
+        # Create 3 Tabs
         tab_buy, tab_sell, tab_chart = st.tabs([t["tab_buy"], t["tab_sell"], t["tab_chart"]])
 
         # ------------------------------------------
-        # Tab 1: 買入/觀望決策
+        # Tab 1: Buy Decision
         # ------------------------------------------
         with tab_buy:
             st.subheader(t["decision_header"])
@@ -187,7 +232,7 @@ if ticker_symbol:
                 st.info(t["no_valuation_data"])
 
         # ------------------------------------------
-        # Tab 2: 賣出/持股診斷
+        # Tab 2: Exit / Sell Diagnosis
         # ------------------------------------------
         with tab_sell:
             st.subheader(t["sell_header"])
@@ -231,22 +276,189 @@ if ticker_symbol:
                         st.write(sr)
 
         # ------------------------------------------
-        # Tab 3: 獨立的歷史走勢圖表
+        # Tab 3: Technical Chart, News & Local AI
         # ------------------------------------------
         with tab_chart:
-            st.subheader(t["chart_header"])
-            hist = stock.history(period="1y")
+            # Timeframe selector pills
+            time_frame = st.pills(
+                t["timeframe_label"],
+                options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
+                default="1d"
+            )
 
+            config_mapping = {
+                "15m": {"period": "7d", "interval": "15m"},
+                "30m": {"period": "14d", "interval": "30m"},
+                "1h":  {"period": "1mo", "interval": "1h"},
+                "1d":  {"period": "2y",  "interval": "1d"},
+                "1wk": {"period": "5y",  "interval": "1wk"},
+                "1mo": {"period": "max", "interval": "1mo"}
+            }
+
+            selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
+
+            # Data & Technical Indicators Calculation
+            df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
+            df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+
+            latest_close = current_price
+            pct_change = 0.0
+            ma20_val = current_price
+            ma50_val = current_price
+            latest_rsi = 50.0
+            low_period = current_price
+
+            if not df.empty:
+                df.index = pd.to_datetime(df.index)
+                df['MA20'] = df['Close'].rolling(window=20).mean()
+                df['MA50'] = df['Close'].rolling(window=50).mean()
+
+                delta = df['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                rs = gain / loss
+                df['RSI'] = 100 - (100 / (1 + rs))
+
+                latest_close = df['Close'].iloc[-1]
+                prev_close = df['Close'].iloc[-2] if len(df) > 1 else latest_close
+                price_change = latest_close - prev_close
+                pct_change = (price_change / prev_close) * 100 if prev_close != 0 else 0
+                latest_rsi = df['RSI'].dropna().iloc[-1] if not df['RSI'].dropna().empty else 50
+                ma20_val = df['MA20'].dropna().iloc[-1] if not df['MA20'].dropna().empty else latest_close
+                ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
+                low_period = df['Low'].min()
+
+            # Candlestick Chart
             fig = go.Figure(data=[go.Candlestick(
-                x=hist.index,
-                open=hist['Open'],
-                high=hist['High'],
-                low=hist['Low'],
-                close=hist['Close'],
+                x=df.index,
+                open=df['Open'],
+                high=df['High'],
+                low=df['Low'],
+                close=df['Close'],
                 name="Price"
             )])
-            fig.update_layout(title=f"{ticker_symbol} {t['chart_title']}", xaxis_rangeslider_visible=False, height=500)
+            fig.update_layout(title=f"{ticker_symbol} {t['chart_title']} ({time_frame})", xaxis_rangeslider_visible=False, height=450)
             st.plotly_chart(fig, use_container_width=True)
+
+            # News Collection
+            grouped_news = {
+                t["cat_earnings"]: [],
+                t["cat_ratings"]: [],
+                t["cat_macro"]: [],
+                t["cat_general"]: []
+            }
+
+            news_count = 0
+            try:
+                for item in stock.news[:6]:
+                    content = item.get('content', item) if isinstance(item, dict) else item
+                    title = content.get('title')
+                    provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
+                    click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
+                    
+                    if title:
+                        news_count += 1
+                        t_lower = title.lower()
+                        if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps", "sales"]):
+                            grouped_news[t["cat_earnings"]].append({"title": title, "publisher": provider, "url": click_url})
+                        elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst", "outperform", "overweight"]):
+                            grouped_news[t["cat_ratings"]].append({"title": title, "publisher": provider, "url": click_url})
+                        elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff", "court", "ban"]):
+                            grouped_news[t["cat_macro"]].append({"title": title, "publisher": provider, "url": click_url})
+                        else:
+                            grouped_news[t["cat_general"]].append({"title": title, "publisher": provider, "url": click_url})
+            except Exception:
+                pass
+
+            # Market Holidays Warning
+            today = date.today()
+            is_weekend = today.weekday() in [5, 6]
+            last_data_date = df.index[-1].date() if not df.empty else None
+
+            if is_weekend:
+                st.warning(t["weekend_warning"])
+            elif last_data_date and last_data_date < today:
+                st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
+
+            # Beginner's Guide Expander
+            with st.expander(t["guide_title"], expanded=False):
+                st.markdown(t["guide_content"])
+
+            # Live News Section Fragment
+            @st.fragment(run_every="7200s")
+            def render_live_news_section(grouped_news, news_count):
+                st.subheader(t["news_header"])
+
+                news_conclusion = t["news_default_summary"]
+                if news_count > 0:
+                    for category, items in grouped_news.items():
+                        if items:
+                            with st.expander(f"{category} ({len(items)})", expanded=True):
+                                for item in items:
+                                    if item["url"]:
+                                        st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
+                                    else:
+                                        st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
+                    
+                    st.markdown("")
+                    
+                    if len(grouped_news[t["cat_ratings"]]) > 0:
+                        news_conclusion = t["news_ratings_summary"]
+                    elif len(grouped_news[t["cat_earnings"]]) > 0:
+                        news_conclusion = t["news_earnings_summary"]
+                    elif len(grouped_news[t["cat_macro"]]) > 0:
+                        news_conclusion = t["news_macro_summary"]
+        
+                    st.info(news_conclusion)
+                else:
+                    st.write(t["no_news"])
+        
+                st.divider()
+                return news_conclusion
+
+            news_conclusion = render_live_news_section(grouped_news, news_count)
+
+            # Local Interactive Q&A Assistant
+            st.subheader(t["chat_header"])
+            st.markdown(f"* **{t['current_price']}**: ${latest_close:.2f} ({pct_change:+.2f}%)")
+            st.markdown(f"* **20MA**: {ma20_val:.2f} | **50MA**: {ma50_val:.2f} | **RSI**: {latest_rsi:.1f}")
+            st.markdown(t["chat_hint"])
+
+            if "messages" not in st.session_state:
+                st.session_state.messages = []
+
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
+
+            if user_prompt := st.chat_input(t["chat_placeholder"]):
+                st.session_state.messages.append({"role": "user", "content": user_prompt})
+                with st.chat_message("user"):
+                    st.write(user_prompt)
+
+                q = user_prompt.lower()
+                
+                if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
+                    if latest_close > ma20_val:
+                        response = f"Entry Analysis: Price (${latest_close:.2f}) is above 20MA (${ma20_val:.2f}) with RSI at {latest_rsi:.1f}. Short-term momentum is positive." if lang == "English" else f"入市分析：現價 **＄{latest_close:.2f}** 企喺短期 20MA (**＄{ma20_val:.2f}**) 上方，且 RSI 處於 **{latest_rsi:.1f}**。短線技術面偏向正面。"
+                    else:
+                        response = f"Entry Analysis: Price (${latest_close:.2f}) is below 20MA (${ma20_val:.2f}). Wait for price to recover above 20MA or RSI oversold condition." if lang == "English" else f"入市分析：現價 **＄{latest_close:.2f}** 低於 20MA (**＄{ma20_val:.2f}**)，走勢偏弱。建議等重新企穩均線再考慮。"
+                elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
+                    response = f"{ticker_symbol} latest price: **${latest_close:.2f}** ({pct_change:+.2f}%)."
+                elif any(k in q for k in ["support", "ma", "支持"]):
+                    response = f"20MA Support: **${ma20_val:.2f}** | 50MA Support: **${ma50_val:.2f}**."
+                elif any(k in q for k in ["stop", "risk", "loss", "止損", "走"]):
+                    response = f"Risk Control / Stop Loss line: 50MA (**${ma50_val:.2f}**) or period low (**${low_period:.2f}**)."
+                elif any(k in q for k in ["rsi", "indicator", "超買", "超賣"]):
+                    response = f"RSI(14): **{latest_rsi:.1f}** (>70 Overbought, <30 Oversold)."
+                elif any(k in q for k in ["news", "summary", "新聞", "消息"]):
+                    response = news_conclusion
+                else:
+                    response = f"Summary: Price=${latest_close:.2f} ({pct_change:+.2f}%), 20MA=${ma20_val:.2f}, 50MA=${ma50_val:.2f}, RSI={latest_rsi:.1f}."
+
+                with st.chat_message("assistant"):
+                    st.write(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
     else:
         st.error(t["not_found"])
