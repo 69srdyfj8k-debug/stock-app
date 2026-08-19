@@ -162,11 +162,11 @@ ticker_symbol = st.session_state.ticker
 with st.expander(t["guide_title"], expanded=False):
     st.markdown(t["guide_content"])
 
-if is_weekend:
+    if is_weekend:
         with st.expander(t["weekend_warning"], expanded=False):
             st.markdown(t["weekend_warning"])
-    #elif last_data_date and last_data_date < today:
-        #st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
+    elif last_data_date and last_data_date < today:
+        with st.expander(t["holiday_warning"].format(today=today, last_date=last_data_date))
 
 st.markdown("---")
 
