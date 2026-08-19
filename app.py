@@ -21,7 +21,7 @@ translations = {
         "roe": "ROE",
         "tab_buy": "🟢 Buy Decision",
         "tab_sell": "🔴 Exit Diagnosis",
-        "tab_chart": "📊 Technicals & News",
+        "tab_chart": "📊 Technicals",
         "decision_header": "💡 Buy Decision & Valuation Analysis",
         "signal_buy": "🟢 Buy Candidate",
         "signal_spec": "🟡 High Risk / Speculative Buy",
@@ -85,7 +85,7 @@ translations = {
         "roe": "ROE",
         "tab_buy": "🟢 買入/觀望決策",
         "tab_sell": "🔴 賣出/持股診斷",
-        "tab_chart": "📊 技術分析與新聞",
+        "tab_chart": "📊 技術分析",
         "decision_header": "💡 入手決策與估值分析",
         "signal_buy": "🟢 考慮入手 (Buy Candidate)",
         "signal_spec": "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)",
@@ -168,7 +168,9 @@ if ticker_symbol:
         fcf = info.get('freeCashflow', 0)
         target_mean_price = info.get('targetMeanPrice', None)
 
-        # Key Metrics (Top)
+        # ------------------------------------------
+        # 1. Key Metrics (Top)
+        # ------------------------------------------
         st.markdown("---")
         m1, m2, m3, m4 = st.columns(4)
         m1.metric(t["current_price"], f"{current_price} {currency}")
@@ -176,14 +178,33 @@ if ticker_symbol:
         m3.metric(t["forward_pe"], f"{forward_pe:.2f}" if forward_pe else "N/A")
         m4.metric(t["roe"], f"{roe * 100:.2f}%" if roe else "N/A")
 
+        # Load daily historical data for checking market holiday/dates
+        df_daily = stock.history(period="1y", interval="1d")
+
+        # ------------------------------------------
+        # 2. TOP OF PAGE NOTICES
+        # ------------------------------------------
+        today = date.today()
+        is_weekend = today.weekday() in [5, 6]
+        last_data_date = df_daily.index[-1].date() if not df_daily.empty else None
+
+        if is_weekend:
+            st.warning(t["weekend_warning"])
+        elif last_data_date and last_data_date < today:
+            st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
+
+        # Beginner's Guide placed at the top
+        with st.expander(t["guide_title"], expanded=False):
+            st.markdown(t["guide_content"])
+
         st.markdown("---")
 
-        # Create 3 Tabs
+        # ------------------------------------------
+        # 3. Decision Tabs
+        # ------------------------------------------
         tab_buy, tab_sell, tab_chart = st.tabs([t["tab_buy"], t["tab_sell"], t["tab_chart"]])
 
-        # ------------------------------------------
         # Tab 1: Buy Decision
-        # ------------------------------------------
         with tab_buy:
             st.subheader(t["decision_header"])
             reasons = []
@@ -231,9 +252,7 @@ if ticker_symbol:
             else:
                 st.info(t["no_valuation_data"])
 
-        # ------------------------------------------
         # Tab 2: Exit / Sell Diagnosis
-        # ------------------------------------------
         with tab_sell:
             st.subheader(t["sell_header"])
 
@@ -275,11 +294,8 @@ if ticker_symbol:
                     for sr in sell_reasons:
                         st.write(sr)
 
-        # ------------------------------------------
-        # Tab 3: Technical Chart, News & Local AI
-        # ------------------------------------------
+        # Tab 3: Technical Chart Only
         with tab_chart:
-            # Timeframe selector pills
             time_frame = st.pills(
                 t["timeframe_label"],
                 options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
@@ -297,7 +313,6 @@ if ticker_symbol:
 
             selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
 
-            # Data & Technical Indicators Calculation
             df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
             df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
 
@@ -328,7 +343,6 @@ if ticker_symbol:
                 ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
                 low_period = df['Low'].min()
 
-            # Candlestick Chart
             fig = go.Figure(data=[go.Candlestick(
                 x=df.index,
                 open=df['Open'],
@@ -340,125 +354,106 @@ if ticker_symbol:
             fig.update_layout(title=f"{ticker_symbol} {t['chart_title']} ({time_frame})", xaxis_rangeslider_visible=False, height=450)
             st.plotly_chart(fig, use_container_width=True)
 
-            # News Collection
-            grouped_news = {
-                t["cat_earnings"]: [],
-                t["cat_ratings"]: [],
-                t["cat_macro"]: [],
-                t["cat_general"]: []
-            }
+        # ------------------------------------------
+        # 4. GLOBAL SECTION (OUTSIDE ALL TABS)
+        # ------------------------------------------
+        st.markdown("---")
 
-            news_count = 0
-            try:
-                for item in stock.news[:6]:
-                    content = item.get('content', item) if isinstance(item, dict) else item
-                    title = content.get('title')
-                    provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
-                    click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
-                    
-                    if title:
-                        news_count += 1
-                        t_lower = title.lower()
-                        if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps", "sales"]):
-                            grouped_news[t["cat_earnings"]].append({"title": title, "publisher": provider, "url": click_url})
-                        elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst", "outperform", "overweight"]):
-                            grouped_news[t["cat_ratings"]].append({"title": title, "publisher": provider, "url": click_url})
-                        elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff", "court", "ban"]):
-                            grouped_news[t["cat_macro"]].append({"title": title, "publisher": provider, "url": click_url})
-                        else:
-                            grouped_news[t["cat_general"]].append({"title": title, "publisher": provider, "url": click_url})
-            except Exception:
-                pass
+        # News Collection
+        grouped_news = {
+            t["cat_earnings"]: [],
+            t["cat_ratings"]: [],
+            t["cat_macro"]: [],
+            t["cat_general"]: []
+        }
 
-            # Market Holidays Warning
-            today = date.today()
-            is_weekend = today.weekday() in [5, 6]
-            last_data_date = df.index[-1].date() if not df.empty else None
-
-            if is_weekend:
-                st.warning(t["weekend_warning"])
-            elif last_data_date and last_data_date < today:
-                st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
-
-            # Beginner's Guide Expander
-            with st.expander(t["guide_title"], expanded=False):
-                st.markdown(t["guide_content"])
-
-            # Live News Section Fragment
-            @st.fragment(run_every="7200s")
-            def render_live_news_section(grouped_news, news_count):
-                st.subheader(t["news_header"])
-
-                news_conclusion = t["news_default_summary"]
-                if news_count > 0:
-                    for category, items in grouped_news.items():
-                        if items:
-                            with st.expander(f"{category} ({len(items)})", expanded=True):
-                                for item in items:
-                                    if item["url"]:
-                                        st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
-                                    else:
-                                        st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
-                    
-                    st.markdown("")
-                    
-                    if len(grouped_news[t["cat_ratings"]]) > 0:
-                        news_conclusion = t["news_ratings_summary"]
-                    elif len(grouped_news[t["cat_earnings"]]) > 0:
-                        news_conclusion = t["news_earnings_summary"]
-                    elif len(grouped_news[t["cat_macro"]]) > 0:
-                        news_conclusion = t["news_macro_summary"]
-        
-                    st.info(news_conclusion)
-                else:
-                    st.write(t["no_news"])
-        
-                st.divider()
-                return news_conclusion
-
-            news_conclusion = render_live_news_section(grouped_news, news_count)
-
-            # Local Interactive Q&A Assistant
-            st.subheader(t["chat_header"])
-            st.markdown(f"* **{t['current_price']}**: ${latest_close:.2f} ({pct_change:+.2f}%)")
-            st.markdown(f"* **20MA**: {ma20_val:.2f} | **50MA**: {ma50_val:.2f} | **RSI**: {latest_rsi:.1f}")
-            st.markdown(t["chat_hint"])
-
-            if "messages" not in st.session_state:
-                st.session_state.messages = []
-
-            for message in st.session_state.messages:
-                with st.chat_message(message["role"]):
-                    st.write(message["content"])
-
-            if user_prompt := st.chat_input(t["chat_placeholder"]):
-                st.session_state.messages.append({"role": "user", "content": user_prompt})
-                with st.chat_message("user"):
-                    st.write(user_prompt)
-
-                q = user_prompt.lower()
+        news_count = 0
+        try:
+            for item in stock.news[:6]:
+                content = item.get('content', item) if isinstance(item, dict) else item
+                title = content.get('title')
+                provider = content.get('provider', {}).get('displayName') if isinstance(content.get('provider'), dict) else content.get('publisher', 'Yahoo Finance')
+                click_url = content.get('canonicalUrl', {}).get('url') or content.get('clickThroughUrl', {}).get('url') or content.get('link')
                 
-                if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
-                    if latest_close > ma20_val:
-                        response = f"Entry Analysis: Price (${latest_close:.2f}) is above 20MA (${ma20_val:.2f}) with RSI at {latest_rsi:.1f}. Short-term momentum is positive." if lang == "English" else f"入市分析：現價 **＄{latest_close:.2f}** 企喺短期 20MA (**＄{ma20_val:.2f}**) 上方，且 RSI 處於 **{latest_rsi:.1f}**。短線技術面偏向正面。"
+                if title:
+                    news_count += 1
+                    t_lower = title.lower()
+                    if any(k in t_lower for k in ["earnings", "revenue", "profit", "q1", "q2", "q3", "q4", "delivery", "eps", "sales"]):
+                        grouped_news[t["cat_earnings"]].append({"title": title, "publisher": provider, "url": click_url})
+                    elif any(k in t_lower for k in ["upgrade", "downgrade", "target", "buy", "sell", "analyst", "outperform", "overweight"]):
+                        grouped_news[t["cat_ratings"]].append({"title": title, "publisher": provider, "url": click_url})
+                    elif any(k in t_lower for k in ["fed", "rate", "inflation", "sec", "lawsuit", "tariff", "court", "ban"]):
+                        grouped_news[t["cat_macro"]].append({"title": title, "publisher": provider, "url": click_url})
                     else:
-                        response = f"Entry Analysis: Price (${latest_close:.2f}) is below 20MA (${ma20_val:.2f}). Wait for price to recover above 20MA or RSI oversold condition." if lang == "English" else f"入市分析：現價 **＄{latest_close:.2f}** 低於 20MA (**＄{ma20_val:.2f}**)，走勢偏弱。建議等重新企穩均線再考慮。"
-                elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
-                    response = f"{ticker_symbol} latest price: **${latest_close:.2f}** ({pct_change:+.2f}%)."
-                elif any(k in q for k in ["support", "ma", "支持"]):
-                    response = f"20MA Support: **${ma20_val:.2f}** | 50MA Support: **${ma50_val:.2f}**."
-                elif any(k in q for k in ["stop", "risk", "loss", "止損", "走"]):
-                    response = f"Risk Control / Stop Loss line: 50MA (**${ma50_val:.2f}**) or period low (**${low_period:.2f}**)."
-                elif any(k in q for k in ["rsi", "indicator", "超買", "超賣"]):
-                    response = f"RSI(14): **{latest_rsi:.1f}** (>70 Overbought, <30 Oversold)."
-                elif any(k in q for k in ["news", "summary", "新聞", "消息"]):
-                    response = news_conclusion
-                else:
-                    response = f"Summary: Price=${latest_close:.2f} ({pct_change:+.2f}%), 20MA=${ma20_val:.2f}, 50MA=${ma50_val:.2f}, RSI={latest_rsi:.1f}."
+                        grouped_news[t["cat_general"]].append({"title": title, "publisher": provider, "url": click_url})
+        except Exception:
+            pass
 
-                with st.chat_message("assistant"):
-                    st.write(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
+        # Live News Section Fragment
+        @st.fragment(run_every="7200s")
+        def render_live_news_section(grouped_news, news_count):
+            st.subheader(t["news_header"])
+
+            news_conclusion = t["news_default_summary"]
+            if news_count > 0:
+                for category, items in grouped_news.items():
+                    if items:
+                        with st.expander(f"{category} ({len(items)})", expanded=True):
+                            for item in items:
+                                if item["url"]:
+                                    st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
+                                else:
+                                    st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
+                
+                st.markdown("")
+                
+                if len(grouped_news[t["cat_ratings"]]) > 0:
+                    news_conclusion = t["news_ratings_summary"]
+                elif len(grouped_news[t["cat_earnings"]]) > 0:
+                    news_conclusion = t["news_earnings_summary"]
+                elif len(grouped_news[t["cat_macro"]]) > 0:
+                    news_conclusion = t["news_macro_summary"]
+
+                st.info(news_conclusion)
+            else:
+                st.write(t["no_news"])
+
+            st.divider()
+            return news_conclusion
+
+        news_conclusion = render_live_news_section(grouped_news, news_count)
+
+        # Local Interactive Q&A Assistant (Global Section)
+        st.subheader(t["chat_header"])
+        st.markdown(f"* **{t['current_price']}**: ${current_price:.2f}")
+        st.markdown(t["chat_hint"])
+
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
+
+        if user_prompt := st.chat_input(t["chat_placeholder"]):
+            st.session_state.messages.append({"role": "user", "content": user_prompt})
+            with st.chat_message("user"):
+                st.write(user_prompt)
+
+            q = user_prompt.lower()
+            
+            if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
+                response = f"Entry Check: Current price is **${current_price:.2f}**." if lang == "English" else f"入市分析：現價為 **＄{current_price:.2f}**。"
+            elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
+                response = f"{ticker_symbol} latest price: **${current_price:.2f}**."
+            elif any(k in q for k in ["news", "summary", "新聞", "消息"]):
+                response = news_conclusion
+            else:
+                response = f"Summary: Price=${current_price:.2f}."
+
+            with st.chat_message("assistant"):
+                st.write(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
     else:
         st.error(t["not_found"])
