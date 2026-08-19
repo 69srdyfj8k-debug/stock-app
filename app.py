@@ -24,7 +24,7 @@ st.markdown('''
 translations = {
     "繁體中文": {
         "p1_title": "💡 估值與持股診斷",
-        "p2_title": "📊 總覽與市場新聞",
+        "p2_title": "📰 實時市場新聞",
         "settings_header": "⚙️ 參數設定",
         "symbol_label": "股票代號:",
         "margin_label": "期望安全邊際 (Margin of Safety %):",
@@ -39,7 +39,7 @@ translations = {
         * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
         * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！
         """,
-        "overview_title": "📊 {} 股票總覽與智能市場彙整",
+        "overview_title": "📊 {} 股票總覽",
         "sector": "板塊 Sector:",
         "market_cap": "市值 Market Cap:",
         "pe": "市盈率 P/E:",
@@ -73,7 +73,7 @@ translations = {
     },
     "English": {
         "p1_title": "💡 Valuation & Exit",
-        "p2_title": "📊 Overview & News",
+        "p2_title": "📰 Live News",
         "settings_header": "⚙️ Settings",
         "symbol_label": "Ticker:",
         "margin_label": "Margin of Safety (%):",
@@ -88,7 +88,7 @@ translations = {
         * ⏱️ **Step 2 (Entry)**: Switch to **`15 Minutes (15m)`**. If short-term price pulls back to 20MA support, it offers a sweet spot.
         * ⚠️ **Risk Alert**: If **`1 Day (1d)`** is **🔴 Bearish/Neutral**, 15m buy signals are often brief bounces!
         """,
-        "overview_title": "📊 {} Overview & Market Summary",
+        "overview_title": "📊 {} Stock Overview",
         "sector": "Sector:",
         "market_cap": "Market Cap:",
         "pe": "P/E Ratio:",
@@ -243,164 +243,31 @@ else:
         st.markdown(t["guide_content"])
 
     # ==========================================
-    # 🎯 中間 Tab 選單
+    # 📊 股票總覽 (放在小白指南下方，Tab 之前)
     # ==========================================
-    tab1, tab2 = st.tabs([t["p1_title"], t["p2_title"]])
+    company_name = info.get('longName', symbol)
+    sector = info.get('sector', 'N/A')
+    market_cap = info.get('marketCap', 0)
+    pe_ratio = info.get('trailingPE', 'N/A')
+    target_price = info.get('targetMeanPrice', 'N/A')
+    recommendation = str(info.get('recommendationKey', 'N明白，這部分是專屬 **ORCL 的個股數據卡片**，應該緊接在「📊 股票總覽」區塊內（即「小白/新手速覽」附近），獨立於新聞分析之外。
 
-    # --- 🥇 Tab 1：💡 估值與持股診斷 ---
-    with tab1:
-        st.title(f"💡 {symbol} {t['decision_title']}")
+你可以參考以下排版方式整理相關數據：
 
-        reasons = []
-        target_price = info.get('targetMeanPrice', 'N/A')
-        target_mean_price = info.get('targetMeanPrice')
-        eps = info.get('forwardEps') or info.get('trailingEps')
-        pe = info.get('forwardPE') or info.get('trailingPE')
-        roe = info.get('returnOnEquity')
-        fcf = info.get('freeCashflow')
+**🏢 Oracle Corporation (ORCL)**
 
-        fair_value = None
-        valuation_source = ""
+* **基本面數據**
+  * **板塊 Sector**：Technology
+  * **市值 Market Cap**：$409.11B
+  * **市盈率 P/E**：24.36
+  * **大行評級**：BUY（目標價：$246.43）
 
-        if target_mean_price and isinstance(target_mean_price, (int, float)) and target_mean_price > 0:
-            fair_value = float(target_mean_price)
-            valuation_source = "華爾街大行平均目標價 (Analyst Target Price)"
-        elif eps and pe and isinstance(eps, (int, float)) and isinstance(pe, (int, float)) and eps > 0 and pe > 0:
-            fair_value = float(eps * pe)
-            valuation_source = "預估 EPS × P/E 估值法"
-        else:
-            fair_value = float((ma20_val + high_period) / 2)
-            valuation_source = "技術面綜合基準價 (20MA & 週期高點)"
+* **技術面與價格數據**
+  * **最新價格**：$142.03 (`-0.53%`)
+  * **20MA (短期支持)**：$138.03
+  * **50MA (中期支持)**：$147.52
+  * **RSI (14)**：62.4
 
-        max_buy_price = fair_value * (1 - required_margin)
-        current_price = round(latest_close, 2)
+---
 
-        if current_price <= max_buy_price:
-            price_ok = True
-            reasons.append(f"✅ 現價 (${current_price:.2f}) 低於買入上限價 (${max_buy_price:.2f})，安全邊際達 {required_margin*100:.0f}%。" if lang == "繁體中文" else f"✅ Price (${current_price:.2f}) below max buy price (${max_buy_price:.2f}), offering >{required_margin*100:.0f}% margin of safety.")
-        else:
-            price_ok = False
-            reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於買入上限價 (${max_buy_price:.2f})，折讓幅度不足。" if lang == "繁體中文" else f"⚠️ Price (${current_price:.2f}) exceeds max buy price (${max_buy_price:.2f}). Insufficient discount.")
-
-        health_ok = True
-        if roe and isinstance(roe, (int, float)):
-            roe_display = f"{roe * 100:.1f}%"
-            if roe > 0.15:
-                reasons.append(f"✅ ROE ({roe_display} > 15%) 股東回報率優秀。" if lang == "繁體中文" else f"✅ Strong ROE ({roe_display} > 15%).")
-            else:
-                health_ok = False
-                reasons.append(f"⚠️ ROE ({roe_display}) 表現一般。" if lang == "繁體中文" else f"⚠️ Low/Moderate ROE ({roe_display}).")
-        else:
-            reasons.append("ℹ️ 暫無 ROE 數據，主依價格折讓評估。" if lang == "繁體中文" else "ℹ️ ROE data unavailable.")
-
-        if fcf and isinstance(fcf, (int, float)) and fcf > 0:
-            reasons.append("✅ 自由現金流 (FCF) 為正數。" if lang == "繁體中文" else "✅ Free Cash Flow is positive.")
-
-        reasons.append(f"📌 估值基準來源：`{valuation_source}`")
-
-        if price_ok and health_ok:
-            buy_signal, signal_color = ("🟢 考慮入手 (Buy Candidate)" if lang == "繁體中文" else "🟢 Buy Candidate"), "green"
-        elif price_ok and not health_ok:
-            buy_signal, signal_color = ("🟡 估值便宜但基本面偏弱 (Speculative Buy)" if lang == "繁體中文" else "🟡 Speculative Buy"), "orange"
-        else:
-            buy_signal, signal_color = ("🔴 建議觀望 / 暫不入手 (Wait for Dip)" if lang == "繁體中文" else "🔴 Wait for Dip"), "red"
-
-        st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-        st.write(f"**{t['fair_val']}** ${fair_value:.2f} | **{t['max_buy']}** ${max_buy_price:.2f}")
-
-        with st.expander(t["view_buy_reasons"], expanded=True):
-            for reason in reasons:
-                st.markdown(f"- {reason}")
-
-        st.divider()
-
-        # 賣出/持股診斷
-        st.subheader(t["sell_diag_title"])
-        
-        # 使用 Session State 避免重新渲染時重置輸入值
-        cost_key = f"buy_cost_{symbol}"
-        if cost_key not in st.session_state:
-            st.session_state[cost_key] = float(round(current_price * 0.9, 2))
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            buy_cost = st.number_input(
-                t["buy_cost_label"],
-                min_value=0.0,
-                key=cost_key,
-                step=1.0
-            )
-        with c2:
-            stop_loss_pct = st.slider(t["stop_loss_label"], 5, 30, 10) / 100
-
-        if buy_cost > 0:
-            pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
-            pnl_color = "green" if pnl_pct >= 0 else "red"
-            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (${buy_cost:.2f} ➔ ${current_price:.2f})")
-
-            stop_loss_price = buy_cost * (1 - stop_loss_pct)
-            target_sell_price = target_price if isinstance(target_price, (int, float)) and target_price > 0 else buy_cost * 1.2
-
-            st.markdown("---")
-            sell_reasons = []
-
-            if current_price <= stop_loss_price:
-                sell_signal, sell_color = ("🔴 觸及止蝕點 (SELL / Stop Loss)" if lang == "繁體中文" else "🔴 SELL / Stop Loss"), "red"
-                sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿止蝕線 (${stop_loss_price:.2f})。" if lang == "繁體中文" else f"❌ Price (${current_price:.2f}) below stop-loss (${stop_loss_price:.2f}).")
-            elif current_price >= target_sell_price:
-                sell_signal, sell_color = ("🟢 達到目標價 (TRIM / Take Profit)" if lang == "繁體中文" else "🟢 TRIM / Take Profit"), "green"
-                sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標價 (${target_sell_price:.2f})。" if lang == "繁體中文" else f"🎉 Price (${current_price:.2f}) reached target (${target_sell_price:.2f}).")
-            else:
-                sell_signal, sell_color = ("🟡 繼續持有 (HOLD)" if lang == "繁體中文" else "🟡 HOLD"), "orange"
-                sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間。" if lang == "繁體中文" else f"✅ Price between stop-loss (${stop_loss_price:.2f}) and target (${target_sell_price:.2f}).")
-
-            st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
-            st.write(f"**{t['stop_price_label']}**: ${stop_loss_price:.2f} | **{t['target_sell_label']}**: ${target_sell_price:.2f}")
-
-            with st.expander(t["view_sell_reasons"], expanded=True):
-                for sr in sell_reasons:
-                    st.write(sr)
-
-    # --- 🥈 Tab 2：📊 總覽與市場新聞 ---
-    with tab2:
-        st.title(t["overview_title"].format(symbol))
-
-        company_name = info.get('longName', symbol)
-        sector = info.get('sector', 'N/A')
-        market_cap = info.get('marketCap', 0)
-        pe_ratio = info.get('trailingPE', 'N/A')
-        target_price = info.get('targetMeanPrice', 'N/A')
-        recommendation = str(info.get('recommendationKey', 'N/A')).upper()
-
-        st.subheader(f"🏢 {company_name}")
-        cap_str = f"${market_cap / 1e9:.2f}B" if isinstance(market_cap, (int, float)) and market_cap > 1e9 else (f"${market_cap / 1e6:.2f}M" if isinstance(market_cap, (int, float)) and market_cap > 0 else "N/A")
-        
-        col_a, col_b, col_c, col_d = st.columns(4)
-        col_a.write(f"**{t['sector']}** {sector}")
-        col_b.write(f"**{t['market_cap']}** {cap_str}")
-        col_c.write(f"**{t['pe']}** {pe_ratio if isinstance(pe_ratio, str) else f'{pe_ratio:.2f}'}")
-        col_d.write(f"**{t['rating']}** {recommendation} ({t['target']}: ${target_price})")
-
-        st.divider()
-
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric(t["latest_price"], f"${latest_close:.2f}", f"{pct_change:+.2f}%")
-        col2.metric(t["ma20_support"], f"${ma20_val:.2f}")
-        col3.metric(t["ma50_support"], f"${ma50_val:.2f}")
-        col4.metric(t["rsi_val"], f"{latest_rsi:.1f}")
-
-        st.divider()
-
-        # 市場新聞分類展示
-        st.subheader(t["news_header"])
-        if news_count > 0:
-            for cat, items in grouped_news.items():
-                if items:
-                    st.write(f"#### {cat}")
-                    for item in items:
-                        if item["url"]:
-                            st.markdown(f"- [{item['title']}]({item['url']}) — *{item['publisher']}*")
-                        else:
-                            st.markdown(f"- {item['title']} — *{item['publisher']}*")
-        else:
-            st.info(t["no_news"])
+如果需要在前端介面或報告中調整位置，可以將上述組件直接嵌套至「個股總覽」的卡片容器（Card Container）內，避免放入新聞動態（News Feed）的區塊。
