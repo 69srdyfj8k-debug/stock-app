@@ -179,7 +179,7 @@ if ticker_symbol:
     with st.expander(t["guide_title"], expanded=False):
         st.markdown(t["guide_content"])
 
-st.markdown("---")
+    st.markdown("---")
 
 # ------------------------------------------
 # 2. MAIN HEADER & SEARCH
