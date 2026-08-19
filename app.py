@@ -56,7 +56,7 @@ translations = {
         * 🎯 **Core Principle**: **"Use longer timeframes (1d) for trend direction, shorter timeframes (15m/30m) for entry timing."**
         * 🧭 **Step 1 (Trend)**: Check **`1 Day (1d)`** first. If 1d shows **🟢 Bullish**, the long-term trend is healthy.
         * ⏱️ **Step 2 (Entry)**: Switch to **`15 Minutes (15m)`**. If short-term price pulls back to the 20MA support, it offers an optimal entry point.
-        * ⚠️ **Risk Warning**: If **`1 Day (1d)`** shows **🔴 Bearish**, short-term rallies on 15m are often brief bounces!"""
+        * ⚠️ **Risk Warning**: If **`1 Day (1d)`** shows **🔴 Bearish**, short-term rallies on 15m are often brief bounces!""",
         "weekend_warning": "⚠️ [Market Closed] Today is a weekend. Displaying latest trading day data.",
         "weekend_detail": "💡 **Notice**: The market is currently closed. All stock prices and valuation metrics reflect the latest trading session.",
         "holiday_warning": "📅 [Market Closed] Market is closed or not open today ({today}). Latest data: {last_date}.",
@@ -121,7 +121,7 @@ translations = {
         * 🎯 **核心原則**：**「大週期 (1d) 定方向，小週期 (15m/30m) 找買點」**。
         * 🧭 **步驟 1（看大方向）**：先切換至 **`1 天 (1d)`**。如果 1d 顯示 **🟢 偏多**，代表中長期大趨勢健康。
         * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
-        * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！"""
+        * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！""",
         "weekend_warning": "⚠️ 【今日休市提示】 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。",
         "weekend_detail": "💡 **小白提醒**：目前為非交易時段，當前顯示之股價與估值指標均為最近一個交易日之結算數據。",
         "holiday_warning": "📅 【工作天休市/假日提示】 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：{last_date}。",
