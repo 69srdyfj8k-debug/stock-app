@@ -3,6 +3,13 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
+import requests
+
+# 建立帶有 User-Agent 的 Session，避免被 Yahoo 封鎖
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+})
 
 # Page configuration
 st.set_page_config(page_title="Stock Analyzer & Decision Helper", layout="wide")
@@ -167,27 +174,37 @@ ticker_symbol = st.session_state.ticker
 # Data Fetching Helpers with Caching
 @st.cache_data(ttl=300)
 def fetch_stock_data(ticker):
-    s = yf.Ticker(ticker)
+    s = yf.Ticker(ticker, session=session) # 傳入 session
     
-    # 1. 抓取 K線歷史資料
+    # 1. 歷史 K 線
     try:
         df_hist = s.history(period="1y")
     except Exception:
         df_hist = pd.DataFrame()
         
-    # 2. 抓取 info
+    # 2. 基本面 Info（改用 get_info() 較穩定）
+    info_data = {}
     try:
-        info_data = s.info or {}
+        info_data = s.get_info()
     except Exception:
-        info_data = {}
-        
-    # 3. 抓取 news
+        try:
+            info_data = s.info
+        except Exception:
+            info_data = {}
+            
+    # 如果 info 真的還是空，從 fast_info 補救當前股價與基本數據
+    if not info_data and not df_hist.empty:
+        info_data = {
+            'currentPrice': df_hist['Close'].iloc[-1],
+            'regularMarketPreviousClose': df_hist['Close'].iloc[-2] if len(df_hist) > 1 else df_hist['Close'].iloc[-1]
+        }
+
+    # 3. 新聞
     try:
         news_data = getattr(s, 'news', []) or []
     except Exception:
         news_data = []
 
-    # ⚠️ 不要回傳 s，只回傳 df_hist, info_data, news_data
     return df_hist, info_data, news_data
     
 df, info, news = fetch_stock_data(ticker_symbol)
