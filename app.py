@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 📱 強制覆蓋手機 Touch Icon (已修正括號 Escape 語法)
+# 📱 強制覆蓋手機 Touch Icon
 icon_url = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4c8.png"
 st.markdown('''
     <head>
@@ -25,10 +25,9 @@ st.markdown('''
 # ==========================================
 translations = {
     "繁體中文": {
-        "menu_header": "📌 功能選單",
-        "page_select": "選擇頁面：",
-        "p1_title": "📊 總覽、新聞彙整與提問",
-        "p2_title": "📈 技術走勢圖表",
+        "tab1_title": "📊 總覽與決策",
+        "tab2_title": "📰 新聞與 AI 助手",
+        "tab3_title": "📈 技術圖表",
         "settings_header": "⚙️ 參數設定",
         "symbol_label": "輸入股票代號 (如 AAPL, TSLA, 0700.HK):",
         "margin_label": "期望安全邊際 (Margin of Safety %):",
@@ -43,7 +42,7 @@ translations = {
         * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
         * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！
         """,
-        "overview_title": "📊 {} 股票總覽與智能市場彙整",
+        "overview_title": "📊 {} 股票總覽與分析",
         "sector": "板塊 Sector:",
         "market_cap": "市值 Market Cap:",
         "pe": "市盈率 P/E:",
@@ -66,7 +65,7 @@ translations = {
         "view_sell_reasons": "🔍 賣出診斷分析理由",
         "news_header": "📰 實時新聞 Grouping 與智能市場結語 (Conclusion)",
         "no_news": "暫無最新新聞數據。",
-        "assistant_title": "💬 本地分析摘要",
+        "assistant_title": "💬 本地分析摘要與問答",
         "chat_placeholder": "輸入你想了解的關鍵字，例如：支持位、RSI、止損、現價 等。",
         "chat_hint": "你可以試下問：`現價`、`支持位`、`止損` 或 `新聞` ！",
         "chart_title": "📈 {} 技術走勢圖表",
@@ -81,10 +80,9 @@ translations = {
         "cat_general": "📌 一般市場動態"
     },
     "English": {
-        "menu_header": "📌 Menu",
-        "page_select": "Select Page:",
-        "p1_title": "📊 Overview, News & Q&A",
-        "p2_title": "📈 Technical Chart",
+        "tab1_title": "📊 Overview & Decision",
+        "tab2_title": "📰 News & AI Assistant",
+        "tab3_title": "📈 Technical Chart",
         "settings_header": "⚙️ Settings",
         "symbol_label": "Enter Ticker (e.g., AAPL, TSLA, 0700.HK):",
         "margin_label": "Margin of Safety (%):",
@@ -99,7 +97,7 @@ translations = {
         * ⏱️ **Step 2 (Entry)**: Switch to **`15 Minutes (15m)`**. If short-term price pulls back to 20MA support, it offers a sweet spot.
         * ⚠️ **Risk Alert**: If **`1 Day (1d)`** is **🔴 Bearish/Neutral**, 15m buy signals are often brief bounces!
         """,
-        "overview_title": "📊 {} Overview & Market Summary",
+        "overview_title": "📊 {} Overview & Analytics",
         "sector": "Sector:",
         "market_cap": "Market Cap:",
         "pe": "P/E Ratio:",
@@ -122,7 +120,7 @@ translations = {
         "view_sell_reasons": "🔍 View Exit Analysis Reasons",
         "news_header": "📰 Live News Grouping & Sentiment Summary",
         "no_news": "No recent news available.",
-        "assistant_title": "💬 Local Market Assistant",
+        "assistant_title": "💬 Local Market Assistant & Q&A",
         "chat_placeholder": "Ask key terms like: Support, RSI, Stop Loss, Current Price...",
         "chat_hint": "Try asking: `Price`, `Support`, `Stop Loss`, or `News`!",
         "chart_title": "📈 {} Technical Chart",
@@ -138,13 +136,9 @@ translations = {
     }
 }
 
-# --- 側邊欄 ---
+# --- 側邊欄：只留參數設定 ---
 lang = st.sidebar.radio("🌐 語言 / Language", ["繁體中文", "English"])
 t = translations[lang]
-
-st.sidebar.divider()
-st.sidebar.header(t["menu_header"])
-page_choice = st.sidebar.radio(t["page_select"], [t["p1_title"], t["p2_title"]])
 
 st.sidebar.divider()
 st.sidebar.header(t["settings_header"])
@@ -264,9 +258,14 @@ else:
         st.markdown(t["guide_content"])
 
     # ==========================================
-    # 📄 第一頁：總覽、新聞彙整與提問
+    # 📌 主頁面 3 個 Tabs 切換
     # ==========================================
-    if page_choice == t["p1_title"]:
+    tab1, tab2, tab3 = st.tabs([t["tab1_title"], t["tab2_title"], t["tab3_title"]])
+
+    # ------------------------------------------
+    # TAB 1: 📊 總覽與決策
+    # ------------------------------------------
+    with tab1:
         st.title(t["overview_title"].format(symbol))
 
         company_name = info.get('longName', symbol)
@@ -295,7 +294,7 @@ else:
 
         st.divider()
 
-        # --- 入手決策 Engine (強防護多層估值) ---
+        # --- 入手決策 Engine ---
         st.subheader(t["decision_title"])
         reasons = []
         
@@ -396,7 +395,10 @@ else:
                 for sr in sell_reasons:
                     st.write(sr)
 
-        # --- 新聞分類彙整 ---
+    # ------------------------------------------
+    # TAB 2: 📰 新聞與 AI 助手
+    # ------------------------------------------
+    with tab2:
         @st.fragment(run_every="7200s")
         def render_live_news_section(grouped_news, news_count):
             st.subheader(t["news_header"])
@@ -431,131 +433,3 @@ else:
         st.subheader(t["assistant_title"])
         st.markdown(f"* **{t['latest_price']}**：${latest_close:.2f} ({pct_change:+.2f}%)")
         st.markdown(f"* **20MA / 50MA**：{ma20_val:.2f} | {ma50_val:.2f}")
-        st.markdown(f"* **RSI (14)**：{latest_rsi:.1f}")
-        st.markdown(t["chat_hint"])
-
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.write(message["content"])
-
-        if user_prompt := st.chat_input(t["chat_placeholder"]):
-            st.session_state.messages.append({"role": "user", "content": user_prompt})
-            with st.chat_message("user"):
-                st.write(user_prompt)
-
-            q = user_prompt.lower()
-            if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
-                if latest_close > ma20_val:
-                    response = f"Price **${latest_close:.2f}** above 20MA (**${ma20_val:.2f}**). Bullish setup." if lang == "English" else f"現價 **＄{latest_close:.2f}** 企喺 20MA (**＄{ma20_val:.2f}**) 上方，短線偏正。"
-                else:
-                    response = f"Price **${latest_close:.2f}** below 20MA (**${ma20_val:.2f}**). Weak trend." if lang == "English" else f"現價 **＄{latest_close:.2f}** 低於 20MA (**＄{ma20_val:.2f}**)，走勢偏弱。"
-            elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
-                response = f"{symbol}: **${latest_close:.2f}** ({pct_change:+.2f}%)."
-            elif any(k in q for k in ["support", "ma20", "20ma", "支持"]):
-                response = f"20MA: **${ma20_val:.2f}** | 50MA: **${ma50_val:.2f}**."
-            elif any(k in q for k in ["stop", "risk", "止損", "走"]):
-                response = f"Risk line: 50MA (**${ma50_val:.2f}**) / Period Low (**${low_period:.2f}**)."
-            elif any(k in q for k in ["rsi", "超買"]):
-                response = f"RSI(14): **{latest_rsi:.1f}**."
-            elif any(k in q for k in ["news", "新聞", "消息"]):
-                response = news_summary_text
-            else:
-                response = f"Price=${latest_close:.2f} ({pct_change:+.2f}%) | 20MA=${ma20_val:.2f} | RSI={latest_rsi:.1f}."
-
-            with st.chat_message("assistant"):
-                st.write(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
-
-    # ==========================================
-    # 📈 第二頁 : 技術走勢圖表
-    # ==========================================
-    elif page_choice == t["p2_title"]:
-        st.title(t["chart_title"].format(symbol))
-        st.caption(t["chart_caption"].format(time_frame))
-
-        fig = make_subplots(
-            rows=2, cols=1, 
-            shared_xaxes=True, 
-            vertical_spacing=0.04, 
-            row_heights=[0.75, 0.25],
-            subplot_titles=(f"{symbol} {t['chart_main_title']}", t["chart_rsi_title"])
-        )
-
-        fig.add_trace(
-            go.Candlestick(
-                x=df.index, 
-                open=df['Open'], 
-                high=df['High'], 
-                low=df['Low'], 
-                close=df['Close'], 
-                name=t["k_line"]
-            ), 
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df['MA20'], mode='lines', name='20MA', line=dict(color='orange', width=1.5)), 
-            row=1, col=1
-        )
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df['MA50'], mode='lines', name='50MA', line=dict(color='#2962FF', width=1.5)), 
-            row=1, col=1
-        )
-
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df['RSI'], mode='lines', name='RSI', line=dict(color='#9C27B0', width=1.5)), 
-            row=2, col=1
-        )
-        fig.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.7, row=2, col=1)
-        fig.add_hline(y=30, line_dash="dash", line_color="green", opacity=0.7, row=2, col=1)
-
-        rangebreaks_config = []
-        if selected_config['interval'] in ['15m', '30m', '1h', '1d']:
-            rangebreaks_config.append(dict(bounds=["sat", "mon"]))
-            if 'm' in selected_config['interval'] or 'h' in selected_config['interval']:
-                rangebreaks_config.append(dict(bounds=[16, 9.5], pattern="hour"))
-        
-        fig.update_xaxes(
-            type='date',
-            rangebreaks=rangebreaks_config,
-            gridcolor='rgba(255, 255, 255, 0.1)',
-            row=2, col=1
-        )
-        
-        fig.update_yaxes(
-            gridcolor='rgba(255, 255, 255, 0.1)',
-            autorange=True,
-            fixedrange=False,
-            row=1, col=1
-        )
-        
-        fig.update_yaxes(
-            gridcolor='rgba(255, 255, 255, 0.1)',
-            range=[0, 100],
-            fixedrange=True,
-            row=2, col=1
-        )
-
-        fig.update_layout(
-            height=680,
-            template="plotly_dark",
-            margin=dict(l=20, r=20, t=40, b=20),
-            hovermode="x unified",
-            xaxis_rangeslider_visible=False,
-            dragmode='pan',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-
-        st.plotly_chart(
-            fig, 
-            use_container_width=True,
-            config={
-                'scrollZoom': False,
-                'displayModeBar': True,
-                'modeBarButtonsToRemove': ['zoom2d', 'select2d', 'lasso2d'],
-                'displaylogo': False
-            }
-        )
