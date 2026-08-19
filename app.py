@@ -57,9 +57,10 @@ translations = {
         * 🧭 **Step 1 (Trend)**: Check **`1 Day (1d)`** first. If 1d shows **🟢 Bullish**, the long-term trend is healthy.
         * ⏱️ **Step 2 (Entry)**: Switch to **`15 Minutes (15m)`**. If short-term price pulls back to the 20MA support, it offers an optimal entry point.
         * ⚠️ **Risk Warning**: If **`1 Day (1d)`** shows **🔴 Bearish**, short-term rallies on 15m are often brief bounces!
-        """,
-        "weekend_warning": "⚠️ **[Market Closed Warning]** Today is a weekend. Displaying latest trading day data.",
-        "holiday_warning": "📅 **[Market Closed/Non-Trading Day]** Market is closed or not open yet today ({today}). Latest data as of: `{last_date}`.",
+        "weekend_warning": "⚠️ [Market Closed] Today is a weekend. Displaying latest trading day data.",
+        "weekend_detail": "💡 **Notice**: The market is currently closed. All stock prices and valuation metrics reflect the latest trading session.",
+        "holiday_warning": "📅 [Market Closed] Market is closed or not open today ({today}). Latest data: {last_date}.",
+        "holiday_detail": "💡 **Notice**: Market is currently closed for a holiday or pending open. Please check official trading hours.",
         "news_header": "📰 Real-time News Grouping & Market Sentiment Summary",
         "cat_earnings": "💰 Earnings & Financials",
         "cat_ratings": "🎯 Analyst Ratings & Targets",
@@ -122,8 +123,10 @@ translations = {
         * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
         * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！
         """,
-        "weekend_warning": "⚠️ **【今日休市提示】** 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。",
-        "holiday_warning": "📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_date}`。",
+        "weekend_warning": "⚠️ 【今日休市提示】 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。",
+        "weekend_detail": "💡 **小白提醒**：目前為非交易時段，當前顯示之股價與估值指標均為最近一個交易日之結算數據。",
+        "holiday_warning": "📅 【工作天休市/假日提示】 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：{last_date}。",
+        "holiday_detail": "💡 **小白提醒**：市場現正處於假期休市或數據延遲，請留意最新開盤狀態。",
         "news_header": "📰 實時新聞 Grouping 與智能市場結語 (Conclusion)",
         "cat_earnings": "💰 業績與財務數據",
         "cat_ratings": "🎯 大行評級與目標價",
@@ -163,13 +166,15 @@ with st.expander(t["guide_title"], expanded=False):
     st.markdown(t["guide_content"])
 
     if is_weekend:
-        with st.expander(t["weekend_warning"], expanded=False):
-            st.markdown(t["weekend_warning"])
+        with st.expander(t["weekend_warning"], expanded=True):
+            st.markdown(t["weekend_detail"])
     elif last_data_date and last_data_date < today:
-        with st.expander(t["holiday_warning"].format(today=today, last_date=last_data_date)):
-            st.markdown(t["holiday_warning"])
+        holiday_msg = t["holiday_warning"].format(today=today, last_date=last_data_date)
+        with st.expander(holiday_msg, expanded=True):
+            st.markdown(t["holiday_detail"])
 
 st.markdown("---")
+
 
 # ------------------------------------------
 # 2. MAIN HEADER & SEARCH
