@@ -3,6 +3,15 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
+import requests
+
+# ------------------------------------------
+# 0. 建立 Request Session 避開 Yahoo 防爬蟲 Block
+# ------------------------------------------
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+})
 
 # Page configuration
 st.set_page_config(page_title="Stock Analyzer & Decision Helper", layout="wide")
@@ -164,19 +173,29 @@ st.sidebar.text_input(
 
 ticker_symbol = st.session_state.ticker
 
-# Data Fetching Helpers with Caching
+# Data Fetching Helpers with Caching & Custom Session Header
 @st.cache_data(ttl=300)
 def fetch_stock_data(ticker):
     try:
-        s = yf.Ticker(ticker)
+        s = yf.Ticker(ticker, session=session)
         df_hist = s.history(period="1y")
-        info_data = s.info
-        news_data = getattr(s, 'news', [])
-        return s, df_hist, info_data, news_data
+        
+        info_data = {}
+        try:
+            info_data = s.get_info() if hasattr(s, 'get_info') else s.info
+            if not isinstance(info_data, dict):
+                info_data = {}
+        except Exception:
+            info_data = {}
+            
+        news_data = getattr(s, 'news', []) or []
+        
+        # ⚠️ 不要傳回 s (yf.Ticker 物件)，只傳回可序列化資料
+        return df_hist, info_data, news_data
     except Exception:
-        return None, pd.DataFrame(), {}, []
+        return pd.DataFrame(), {}, []
 
-stock, df, info, news = fetch_stock_data(ticker_symbol)
+df, info, news = fetch_stock_data(ticker_symbol)
 
 # ------------------------------------------
 # 1. TOP OF PAGE: Beginner's Guide & Market Status
@@ -215,10 +234,10 @@ with col_margin:
 
 # Safely verify current price extraction
 current_price = info.get('currentPrice') or info.get('regularMarketPrice')
-if current_price is None and not df.empty:
+if (current_price is None or current_price == 0) and not df.empty:
     current_price = float(df['Close'].iloc[-1])
 
-if current_price is not None:
+if current_price is not None and not df.empty:
     currency = info.get('currency', 'USD')
     pe_ratio = info.get('trailingPE', None)
     forward_pe = info.get('forwardPE', None)
@@ -330,8 +349,8 @@ if current_price is not None:
                 for sr in sell_reasons:
                     st.write(sr)
 
-    # Tab 3: Technical Chart Only
-    with tab_buy if False else tab_chart:
+    # Tab 3: Technical Chart
+    with tab_chart:
         time_frame = st.pills(
             t["timeframe_label"],
             options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
@@ -349,9 +368,13 @@ if current_price is not None:
 
         selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
 
-        # Sub-fetch specific timeframe for technical chart
-        df_chart = stock.history(period=selected_config["period"], interval=selected_config["interval"])
-        df_chart = df_chart.dropna(subset=['Open', 'High', 'Low', 'Close'])
+        # Sub-fetch specific timeframe with session headers
+        try:
+            s_chart = yf.Ticker(ticker_symbol, session=session)
+            df_chart = s_chart.history(period=selected_config["period"], interval=selected_config["interval"])
+            df_chart = df_chart.dropna(subset=['Open', 'High', 'Low', 'Close'])
+        except Exception:
+            df_chart = pd.DataFrame()
 
         if not df_chart.empty:
             df_chart.index = pd.to_datetime(df_chart.index)
