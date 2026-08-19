@@ -23,15 +23,13 @@ st.markdown('''
 # ==========================================
 translations = {
     "繁體中文": {
-        "menu_header": "📌 功能選單",
-        "page_select": "選擇頁面：",
-        "p1_title": "📊 總覽與市場新聞 (含 AI 助手)",
+        "p1_title": "📊 總覽與市場新聞",
         "p2_title": "💡 估值與持股診斷",
         "settings_header": "⚙️ 參數設定",
-        "symbol_label": "輸入股票代號 (如 AAPL, TSLA, 0700.HK):",
+        "symbol_label": "股票代號:",
         "margin_label": "期望安全邊際 (Margin of Safety %):",
         "margin_caption": "💡 說明：預留嘅折讓幅度，用嚟降低估值出錯嘅買入風險。",
-        "timeframe_label": "⏱️ 選擇時間週期",
+        "timeframe_label": "⏱️ 時間週期",
         "weekend_warn": "⚠️ **【今日休市提示】** 今天是週末（非交易日），市場暫停交易。以下顯示為最近一個交易日之數據。",
         "holiday_info": "📅 **【工作天休市/假日提示】** 今日 ({today}) 為工作天休市或尚未開市。最新數據結算至：`{last_date}`。",
         "guide_title": "💡 **【小白指南】不同時間週期 (Timeframe) 的 AI 建議不一樣，該怎麼看？**",
@@ -74,15 +72,13 @@ translations = {
         "cat_general": "📌 一般市場動態"
     },
     "English": {
-        "menu_header": "📌 Menu",
-        "page_select": "Select Page:",
-        "p1_title": "📊 Overview & News (with AI)",
+        "p1_title": "📊 Overview & News",
         "p2_title": "💡 Valuation & Exit",
         "settings_header": "⚙️ Settings",
-        "symbol_label": "Enter Ticker (e.g., AAPL, TSLA, 0700.HK):",
+        "symbol_label": "Ticker:",
         "margin_label": "Margin of Safety (%):",
         "margin_caption": "💡 Note: Discount buffer to lower risk from valuation errors.",
-        "timeframe_label": "⏱️ Select Timeframe",
+        "timeframe_label": "⏱️ Timeframe",
         "weekend_warn": "⚠️ **[Market Closed]** Today is a weekend. Displaying data from the latest trading session.",
         "holiday_info": "📅 **[Market Closed/Holiday]** Market is closed today ({today}). Data updated as of: `{last_date}`.",
         "guide_title": "💡 **[Beginner's Guide] How to interpret different Timeframes?**",
@@ -126,27 +122,21 @@ translations = {
     }
 }
 
-# --- 側邊欄 ---
-lang = st.sidebar.radio("🌐 語言 / Language", ["繁體中文", "English"])
+# --- 頂部控制欄（取代側邊欄） ---
+lang = st.radio("🌐 語言 / Language", ["繁體中文", "English"], horizontal=True)
 t = translations[lang]
 
-st.sidebar.divider()
-st.sidebar.header(t["menu_header"])
-
-page_choice = st.sidebar.radio(t["page_select"], [t["p1_title"], t["p2_title"]])
-
-st.sidebar.divider()
-st.sidebar.header(t["settings_header"])
-
-symbol = st.sidebar.text_input(t["symbol_label"], value="AAPL").upper().strip()
-required_margin = st.sidebar.slider(t["margin_label"], 5, 40, 20) / 100
-st.sidebar.caption(t["margin_caption"])
-
-time_frame = st.pills(
-    t["timeframe_label"],
-    options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
-    default="1d"
-)
+col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
+with col_setting1:
+    symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
+with col_setting2:
+    required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
+with col_setting3:
+    time_frame = st.pills(
+        t["timeframe_label"],
+        options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
+        default="1d"
+    )
 
 config_mapping = {
     "15m": {"period": "7d", "interval": "15m"},
@@ -253,9 +243,12 @@ else:
         st.markdown(t["guide_content"])
 
     # ==========================================
-    # 📄 Tab 1：總覽與市場新聞 (含底層 AI 助手)
+    # 🎯 中間 Tab 選單 (Top Navigation Bar)
     # ==========================================
-    if page_choice == t["p1_title"]:
+    tab1, tab2 = st.tabs([t["p1_title"], t["p2_title"]])
+
+    # --- Tab 1：總覽與市場新聞 (最下方擺放 AI 助手) ---
+    with tab1:
         st.title(t["overview_title"].format(symbol))
 
         company_name = info.get('longName', symbol)
@@ -284,7 +277,7 @@ else:
 
         st.divider()
 
-        # --- 新聞分類彙整 ---
+        # 新聞分類彙整
         @st.fragment(run_every="7200s")
         def render_live_news_section(grouped_news, news_count):
             st.subheader(t["news_header"])
@@ -315,7 +308,7 @@ else:
 
         render_live_news_section(grouped_news, news_count)
 
-        # --- 最底部的智能 AI 助手 ---
+        # 🤖 底層智能 AI 助手
         st.subheader(f"{t['assistant_title']} - {symbol}")
         st.info(t["chat_hint"])
 
@@ -352,10 +345,8 @@ else:
                 st.write(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
 
-    # ==========================================
-    # 📄 Tab 2：估值與持股診斷
-    # ==========================================
-    elif page_choice == t["p2_title"]:
+    # --- Tab 2：估值與持股診斷 ---
+    with tab2:
         st.title(f"💡 {symbol} {t['decision_title']}")
 
         reasons = []
@@ -421,7 +412,7 @@ else:
 
         st.divider()
 
-        # --- 賣出/持股診斷 ---
+        # 賣出/持股診斷
         st.subheader(t["sell_diag_title"])
         c1, c2 = st.columns(2)
         with c1:
