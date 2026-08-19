@@ -28,8 +28,8 @@ translations = {
         "signal_hold": "🔴 Overvalued / Wait for Dip",
         "fair_val": "Fair Value",
         "max_buy": "Max Buy Price",
-        "reason_price_ok": "✅ Current price (${:.2f}) is below the max buy price (${:.2f}), offering a {:.0f}% margin of safety.",
-        "reason_price_high": "⚠️ Current price (${:.2f}) is above the max buy price (${:.2f}). Valuation is not sufficiently discounted.",
+        "reason_price_ok": "✅ Current price (＄{:.2f}) is below the max buy price (＄{:.2f}), offering a {:.0f}% margin of safety.",
+        "reason_price_high": "⚠️ Current price (＄{:.2f}) is above the max buy price (＄{:.2f}). Valuation is not sufficiently discounted.",
         "reason_roe_ok": "✅ ROE ({:.1f}%) is strong (> 15%), indicating solid capital return/moat.",
         "reason_roe_weak": "⚠️ ROE ({}) is low; keep an eye on profitability.",
         "reason_fcf_ok": "✅ Free Cash Flow (FCF) is positive; sound financial health.",
@@ -37,7 +37,7 @@ translations = {
         "expander_buy": "🔍 View Detailed Buy Analysis",
         "no_valuation_data": "Insufficient valuation data for automated decision.",
         "sell_header": "📊 Holding & Exit Diagnosis (Stop Loss / Take Profit)",
-        "cost_label": "Your Buy Cost ($):",
+        "cost_label": "Your Buy Cost (＄):",
         "stop_loss_label": "Stop Loss Threshold (%):",
         "pnl_label": "Current P&L",
         "signal_stop": "🔴 SELL / Triggered Stop Loss",
@@ -45,9 +45,9 @@ translations = {
         "signal_keep": "🟡 HOLD",
         "target_sell": "Target Sell Price",
         "stop_price": "Stop Loss Price",
-        "reason_stop": "❌ Current price (${:.2f}) dropped below stop loss line (${:.2f}, -{:.0f}%). Consider selling to limit risk.",
-        "reason_target": "🎉 Current price (${:.2f}) reached target valuation (${:.2f}). Consider taking profits.",
-        "reason_keep": "✅ Current price is between stop loss (${:.2f}) and target price (${:.2f}). Fundamentals remain intact; safe to hold.",
+        "reason_stop": "❌ Current price (＄{:.2f}) dropped below stop loss line (＄{:.2f}, -{:.0f}%). Consider selling to limit risk.",
+        "reason_target": "🎉 Current price (＄{:.2f}) reached target valuation (＄{:.2f}). Consider taking profits.",
+        "reason_keep": "✅ Current price is between stop loss (＄{:.2f}) and target price (＄{:.2f}). Fundamentals remain intact; safe to hold.",
         "expander_sell": "🔍 View Exit Analysis Reasons",
         "timeframe_label": "⏱️ Select Timeframe",
         "chart_title": "Candlestick Chart",
@@ -91,8 +91,8 @@ translations = {
         "signal_hold": "🔴 建議觀望 / 暫不入手 (Overvalued / Wait for Dip)",
         "fair_val": "估算合理價 (Fair Value)",
         "max_buy": "建議最大買入價 (Max Buy Price)",
-        "reason_price_ok": "✅ 現價 (${:.2f}) 低於安全買入上限價 (${:.2f})，具備 {:.0f}% 以上安全邊際。",
-        "reason_price_high": "⚠️ 現價 (${:.2f}) 高於安全買入上限價 (${:.2f})，估值尚未充分折讓。",
+        "reason_price_ok": "✅ 現價 (＄{:.2f}) 低於安全買入上限價 (＄{:.2f})，具備 {:.0f}% 以上安全邊際。",
+        "reason_price_high": "⚠️ 現價 (＄{:.2f}) 高於安全買入上限價 (＄{:.2f})，估值尚未充分折讓。",
         "reason_roe_ok": "✅ ROE ({:.1f}%) 表現優秀 ( > 15%)，具備高資本回報率/護城河。",
         "reason_roe_weak": "⚠️ ROE ({}) 偏低，需注意企業獲利能力。",
         "reason_fcf_ok": "✅ 自由現金流 (FCF) 為正，財務狀況健康。",
@@ -100,7 +100,7 @@ translations = {
         "expander_buy": "🔍 觀看詳細分析理由",
         "no_valuation_data": "暫無足夠估值數據進行自動買入判定。",
         "sell_header": "📊 持股賣出與止賺止蝕診斷",
-        "cost_label": "輸入你的買入成本價 ($):",
+        "cost_label": "輸入你的買入成本價 (＄):",
         "stop_loss_label": "設定個人止蝕百分比 (Stop Loss %):",
         "pnl_label": "現時帳面盈虧",
         "signal_stop": "🔴 觸及止蝕點 (SELL / Stop Loss)",
@@ -108,9 +108,9 @@ translations = {
         "signal_keep": "🟡 繼續持有 (HOLD)",
         "target_sell": "建議獲利目標價",
         "stop_price": "建議止蝕觸發價",
-        "reason_stop": "❌ 現價 (${:.2f}) 已跌穿個人止蝕線 (${:.2f}，-{:.0f}%)，建議嚴格執行止蝕規避風險。",
-        "reason_target": "🎉 現價 (${:.2f}) 已達目標估值線 (${:.2f})，建議分批獲利減倉鎖定利潤。",
-        "reason_keep": "✅ 現價於止蝕價 (${:.2f}) 與目標價 (${:.2f}) 之間，基本面正常，可繼續 Holding。",
+        "reason_stop": "❌ 現價 (＄{:.2f}) 已跌穿個人止蝕線 (＄{:.2f}，-{:.0f}%)，建議嚴格執行止蝕規避風險。",
+        "reason_target": "🎉 現價 (＄{:.2f}) 已達目標估值線 (＄{:.2f})，建議分批獲利減倉鎖定利潤。",
+        "reason_keep": "✅ 現價於止蝕價 (＄{:.2f}) 與目標價 (＄{:.2f}) 之間，基本面正常，可繼續 Holding。",
         "expander_sell": "🔍 賣出診斷分析理由",
         "timeframe_label": "⏱️ 選擇時間週期",
         "chart_title": "K 線圖與均線指標",
@@ -280,7 +280,7 @@ if current_price is not None:
                 signal_color = "red"
 
             st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-            st.write(f"**{t['fair_val']}**: ${fair_value:.2f} | **{t['max_buy']}**: ${max_buy_price:.2f}")
+            st.write(f"**{t['fair_val']}**: ＄{fair_value:.2f} | **{t['max_buy']}**: ＄{max_buy_price:.2f}")
 
             with st.expander(t["expander_buy"], expanded=True):
                 for reason in reasons:
@@ -302,7 +302,7 @@ if current_price is not None:
             pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
             pnl_color = "green" if pnl_pct >= 0 else "red"
 
-            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (Cost: ${buy_cost:.2f} ➔ Current: ${current_price:.2f})")
+            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (Cost: ＄{buy_cost:.2f} ➔ Current: ＄{current_price:.2f})")
 
             stop_loss_price = buy_cost * (1 - stop_loss_pct)
             target_sell_price = target_mean_price if target_mean_price else buy_cost * 1.2
@@ -324,7 +324,7 @@ if current_price is not None:
                 sell_reasons.append(t["reason_keep"].format(stop_loss_price, target_sell_price))
 
             st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
-            st.write(f"**{t['stop_price']}**: ${stop_loss_price:.2f} | **{t['target_sell']}**: ${target_sell_price:.2f}")
+            st.write(f"**{t['stop_price']}**: ＄{stop_loss_price:.2f} | **{t['target_sell']}**: ＄{target_sell_price:.2f}")
 
             with st.expander(t["expander_sell"], expanded=True):
                 for sr in sell_reasons:
@@ -437,7 +437,7 @@ if current_price is not None:
 
     # Local Interactive Q&A Assistant
     st.subheader(t["chat_header"])
-    st.markdown(f"* **{t['current_price']}**: ${current_price:.2f}")
+    st.markdown(f"* **{t['current_price']}**: ＄{current_price:.2f}")
     st.markdown(t["chat_hint"])
 
     if "messages" not in st.session_state:
@@ -455,13 +455,13 @@ if current_price is not None:
         q = user_prompt.lower()
 
         if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
-            response = f"Entry Check: Current price is **${current_price:.2f}**." if lang == "English" else f"入市分析：現價為 **＄{current_price:.2f}**。"
+            response = f"Entry Check: Current price is **＄{current_price:.2f}**." if lang == "English" else f"入市分析：現價為 **＄{current_price:.2f}**。"
         elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
-            response = f"{ticker_symbol} latest price: **${current_price:.2f}**."
+            response = f"{ticker_symbol} latest price: **＄{current_price:.2f}**."
         elif any(k in q for k in ["news", "summary", "新聞", "消息"]):
             response = news_conclusion
         else:
-            response = f"Summary: Price=${current_price:.2f}."
+            response = f"Summary: Price=＄{current_price:.2f}."
 
         with st.chat_message("assistant"):
             st.write(response)
