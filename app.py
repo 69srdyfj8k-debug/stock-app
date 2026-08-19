@@ -1,7 +1,5 @@
 import streamlit as st
 import yfinance as yf
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from datetime import date
 import pandas as pd
 
@@ -25,9 +23,10 @@ st.markdown('''
 # ==========================================
 translations = {
     "繁體中文": {
-        "tab1_title": "📊 總覽與決策",
-        "tab2_title": "📰 新聞與 AI 助手",
-        "tab3_title": "📈 技術圖表",
+        "menu_header": "📌 功能選單",
+        "page_select": "選擇頁面：",
+        "p1_title": "📊 總覽與市場新聞 (含 AI 助手)",
+        "p2_title": "💡 估值與持股診斷",
         "settings_header": "⚙️ 參數設定",
         "symbol_label": "輸入股票代號 (如 AAPL, TSLA, 0700.HK):",
         "margin_label": "期望安全邊際 (Margin of Safety %):",
@@ -42,7 +41,7 @@ translations = {
         * ⏱️ **步驟 2（找精準入場點）**：再切換至 **`15 分鐘 (15m)`**。若短線拉回至 20MA 支持位，即為最佳逢低建倉時機。
         * ⚠️ **避坑提醒**：若 **`1 天 (1d)`** 顯示 **🔴 觀望/空頭**，即使 15m 出現買入訊號，也多為短線反彈！
         """,
-        "overview_title": "📊 {} 股票總覽與分析",
+        "overview_title": "📊 {} 股票總覽與智能市場彙整",
         "sector": "板塊 Sector:",
         "market_cap": "市值 Market Cap:",
         "pe": "市盈率 P/E:",
@@ -65,14 +64,9 @@ translations = {
         "view_sell_reasons": "🔍 賣出診斷分析理由",
         "news_header": "📰 實時新聞 Grouping 與智能市場結語 (Conclusion)",
         "no_news": "暫無最新新聞數據。",
-        "assistant_title": "💬 本地分析摘要與問答",
+        "assistant_title": "💬 智能 AI 分析助手",
         "chat_placeholder": "輸入你想了解的關鍵字，例如：支持位、RSI、止損、現價 等。",
         "chat_hint": "你可以試下問：`現價`、`支持位`、`止損` 或 `新聞` ！",
-        "chart_title": "📈 {} 技術走勢圖表",
-        "chart_caption": "⏱️ 當前時間週期：**{}** | 💡 提示：你可以用滑鼠在圖表中拉選框進行放大，雙擊圖表重置檢視。",
-        "chart_main_title": "走勢圖與移動平均線",
-        "chart_rsi_title": "RSI (14) 相對強弱指標",
-        "k_line": "K線",
         "data_error": "無法抓取數據，請檢查股票代號是否正確，或嘗試換個時間週期（Timeframe）。",
         "cat_earnings": "💰 業績與財務數據",
         "cat_ratings": "🎯 大行評級與目標價",
@@ -80,9 +74,10 @@ translations = {
         "cat_general": "📌 一般市場動態"
     },
     "English": {
-        "tab1_title": "📊 Overview & Decision",
-        "tab2_title": "📰 News & AI Assistant",
-        "tab3_title": "📈 Technical Chart",
+        "menu_header": "📌 Menu",
+        "page_select": "Select Page:",
+        "p1_title": "📊 Overview & News (with AI)",
+        "p2_title": "💡 Valuation & Exit",
         "settings_header": "⚙️ Settings",
         "symbol_label": "Enter Ticker (e.g., AAPL, TSLA, 0700.HK):",
         "margin_label": "Margin of Safety (%):",
@@ -97,7 +92,7 @@ translations = {
         * ⏱️ **Step 2 (Entry)**: Switch to **`15 Minutes (15m)`**. If short-term price pulls back to 20MA support, it offers a sweet spot.
         * ⚠️ **Risk Alert**: If **`1 Day (1d)`** is **🔴 Bearish/Neutral**, 15m buy signals are often brief bounces!
         """,
-        "overview_title": "📊 {} Overview & Analytics",
+        "overview_title": "📊 {} Overview & Market Summary",
         "sector": "Sector:",
         "market_cap": "Market Cap:",
         "pe": "P/E Ratio:",
@@ -120,14 +115,9 @@ translations = {
         "view_sell_reasons": "🔍 View Exit Analysis Reasons",
         "news_header": "📰 Live News Grouping & Sentiment Summary",
         "no_news": "No recent news available.",
-        "assistant_title": "💬 Local Market Assistant & Q&A",
+        "assistant_title": "💬 Smart AI Assistant",
         "chat_placeholder": "Ask key terms like: Support, RSI, Stop Loss, Current Price...",
         "chat_hint": "Try asking: `Price`, `Support`, `Stop Loss`, or `News`!",
-        "chart_title": "📈 {} Technical Chart",
-        "chart_caption": "⏱️ Timeframe: **{}** | 💡 Tip: Drag on the chart to zoom, double-click to reset.",
-        "chart_main_title": "Price Trend & Moving Averages",
-        "chart_rsi_title": "RSI (14) Relative Strength Index",
-        "k_line": "Candlestick",
         "data_error": "Failed to fetch data. Please check ticker symbol or try changing timeframe.",
         "cat_earnings": "💰 Earnings & Financials",
         "cat_ratings": "🎯 Analyst Ratings & Targets",
@@ -136,9 +126,14 @@ translations = {
     }
 }
 
-# --- 側邊欄：只留參數設定 ---
+# --- 側邊欄 ---
 lang = st.sidebar.radio("🌐 語言 / Language", ["繁體中文", "English"])
 t = translations[lang]
+
+st.sidebar.divider()
+st.sidebar.header(t["menu_header"])
+
+page_choice = st.sidebar.radio(t["page_select"], [t["p1_title"], t["p2_title"]])
 
 st.sidebar.divider()
 st.sidebar.header(t["settings_header"])
@@ -181,7 +176,7 @@ try:
 except Exception:
     df = pd.DataFrame()
 
-# --- 核心邏輯判斷：數據是否抓取成功 ---
+# --- 核心邏輯判斷 ---
 if df is None or df.empty or len(df) < 2:
     st.error(t["data_error"])
 else:
@@ -258,14 +253,9 @@ else:
         st.markdown(t["guide_content"])
 
     # ==========================================
-    # 📌 主頁面 3 個 Tabs 切換
+    # 📄 Tab 1：總覽與市場新聞 (含底層 AI 助手)
     # ==========================================
-    tab1, tab2, tab3 = st.tabs([t["tab1_title"], t["tab2_title"], t["tab3_title"]])
-
-    # ------------------------------------------
-    # TAB 1: 📊 總覽與決策
-    # ------------------------------------------
-    with tab1:
+    if page_choice == t["p1_title"]:
         st.title(t["overview_title"].format(symbol))
 
         company_name = info.get('longName', symbol)
@@ -294,10 +284,82 @@ else:
 
         st.divider()
 
-        # --- 入手決策 Engine ---
-        st.subheader(t["decision_title"])
+        # --- 新聞分類彙整 ---
+        @st.fragment(run_every="7200s")
+        def render_live_news_section(grouped_news, news_count):
+            st.subheader(t["news_header"])
+            default_summary = "Market Summary: General market dynamics." if lang == "English" else "市場焦點總結：目前新聞流向以日常動態為主。"
+            news_conclusion = default_summary
+
+            if news_count > 0:
+                for category, items in grouped_news.items():
+                    if items:
+                        with st.expander(f"{category} ({len(items)})", expanded=True):
+                            for item in items:
+                                if item["url"]:
+                                    st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
+                                else:
+                                    st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
+                st.markdown("")
+                if len(grouped_news[t["cat_ratings"]]) > 0:
+                    news_conclusion = "Market Summary: Heavy coverage on institutional analyst ratings." if lang == "English" else "市場焦點總結：近期市場集中關注大行評級與目標價變動。"
+                elif len(grouped_news[t["cat_earnings"]]) > 0:
+                    news_conclusion = "Market Summary: Focus on corporate earnings and financial metric updates." if lang == "English" else "市場焦點總結：近期新聞主要圍繞業績與交付數據。"
+                elif len(grouped_news[t["cat_macro"]]) > 0:
+                    news_conclusion = "Market Summary: Driven by macro policies or legal/regulatory news." if lang == "English" else "市場焦點總結：近期受到宏觀政策或法律訴訟影響。"
+                st.info(news_conclusion)
+            else:
+                st.write(t["no_news"])
+            st.divider()
+            return news_conclusion
+
+        render_live_news_section(grouped_news, news_count)
+
+        # --- 最底部的智能 AI 助手 ---
+        st.subheader(f"{t['assistant_title']} - {symbol}")
+        st.info(t["chat_hint"])
+
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
+
+        if user_prompt := st.chat_input(t["chat_placeholder"]):
+            st.session_state.messages.append({"role": "user", "content": user_prompt})
+            with st.chat_message("user"):
+                st.write(user_prompt)
+
+            q = user_prompt.lower()
+            if any(k in q for k in ["buy", "entry", "bullish", "入市", "買", "撈底", "睇好"]):
+                if latest_close > ma20_val:
+                    response = f"Price **${latest_close:.2f}** above 20MA (**${ma20_val:.2f}**). Bullish setup." if lang == "English" else f"現價 **＄{latest_close:.2f}** 企喺 20MA (**＄{ma20_val:.2f}**) 上方，短線偏正。"
+                else:
+                    response = f"Price **${latest_close:.2f}** below 20MA (**${ma20_val:.2f}**). Weak trend." if lang == "English" else f"現價 **＄{latest_close:.2f}** 低於 20MA (**＄{ma20_val:.2f}**)，走勢偏弱。"
+            elif any(k in q for k in ["price", "current", "現價", "幾錢"]):
+                response = f"{symbol}: **${latest_close:.2f}** ({pct_change:+.2f}%)."
+            elif any(k in q for k in ["support", "ma20", "20ma", "支持"]):
+                response = f"20MA: **${ma20_val:.2f}** | 50MA: **${ma50_val:.2f}**."
+            elif any(k in q for k in ["stop", "risk", "止損", "走"]):
+                response = f"Risk line: 50MA (**${ma50_val:.2f}**) / Period Low (**${low_period:.2f}**)."
+            elif any(k in q for k in ["rsi", "超買"]):
+                response = f"RSI(14): **{latest_rsi:.1f}**."
+            else:
+                response = f"Price=${latest_close:.2f} ({pct_change:+.2f}%) | 20MA=${ma20_val:.2f} | RSI={latest_rsi:.1f}."
+
+            with st.chat_message("assistant"):
+                st.write(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+    # ==========================================
+    # 📄 Tab 2：估值與持股診斷
+    # ==========================================
+    elif page_choice == t["p2_title"]:
+        st.title(f"💡 {symbol} {t['decision_title']}")
+
         reasons = []
-        
+        target_price = info.get('targetMeanPrice', 'N/A')
         target_mean_price = info.get('targetMeanPrice')
         eps = info.get('forwardEps') or info.get('trailingEps')
         pe = info.get('forwardPE') or info.get('trailingPE')
@@ -394,42 +456,3 @@ else:
             with st.expander(t["view_sell_reasons"], expanded=True):
                 for sr in sell_reasons:
                     st.write(sr)
-
-    # ------------------------------------------
-    # TAB 2: 📰 新聞與 AI 助手
-    # ------------------------------------------
-    with tab2:
-        @st.fragment(run_every="7200s")
-        def render_live_news_section(grouped_news, news_count):
-            st.subheader(t["news_header"])
-            default_summary = "Market Summary: General market dynamics." if lang == "English" else "市場焦點總結：目前新聞流向以日常動態為主。"
-            news_conclusion = default_summary
-
-            if news_count > 0:
-                for category, items in grouped_news.items():
-                    if items:
-                        with st.expander(f"{category} ({len(items)})", expanded=True):
-                            for item in items:
-                                if item["url"]:
-                                    st.markdown(f"• **[{item['title']}]({item['url']})** — *{item['publisher']}*")
-                                else:
-                                    st.markdown(f"• **{item['title']}** — *{item['publisher']}*")
-                st.markdown("")
-                if len(grouped_news[t["cat_ratings"]]) > 0:
-                    news_conclusion = "Market Summary: Heavy coverage on institutional analyst ratings." if lang == "English" else "市場焦點總結：近期市場集中關注大行評級與目標價變動。"
-                elif len(grouped_news[t["cat_earnings"]]) > 0:
-                    news_conclusion = "Market Summary: Focus on corporate earnings and financial metric updates." if lang == "English" else "市場焦點總結：近期新聞主要圍繞業績與交付數據。"
-                elif len(grouped_news[t["cat_macro"]]) > 0:
-                    news_conclusion = "Market Summary: Driven by macro policies or legal/regulatory news." if lang == "English" else "市場焦點總結：近期受到宏觀政策或法律訴訟影響。"
-                st.info(news_conclusion)
-            else:
-                st.write(t["no_news"])
-            st.divider()
-            return news_conclusion
-
-        news_summary_text = render_live_news_section(grouped_news, news_count)
-
-        # --- 本地智能提問助手 ---
-        st.subheader(t["assistant_title"])
-        st.markdown(f"* **{t['latest_price']}**：${latest_close:.2f} ({pct_change:+.2f}%)")
-        st.markdown(f"* **20MA / 50MA**：{ma20_val:.2f} | {ma50_val:.2f}")
