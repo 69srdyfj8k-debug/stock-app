@@ -169,13 +169,13 @@ with st.expander(t["guide_title"], expanded=False):
     is_weekend = today.weekday() in [5, 6]
     last_data_date = None
     
-    if is_weekend:
-        with st.expander(t["weekend_warning"], expanded=False):
-            st.markdown(t["weekend_detail"])
-    elif last_data_date and last_data_date < today:
-        holiday_msg = t["holiday_warning"].format(today=today, last_date=last_data_date)
-        with st.expander(holiday_msg, expanded=False):
-            st.markdown(t["holiday_detail"])
+if is_weekend:
+    with st.expander(t["weekend_warning"], expanded=False):
+        st.markdown(t["weekend_detail"])
+elif last_data_date and last_data_date < today:
+    holiday_msg = t["holiday_warning"].format(today=today, last_date=last_data_date)
+    with st.expander(holiday_msg, expanded=False):
+        st.markdown(t["holiday_detail"])
 
 st.markdown("---")
 
