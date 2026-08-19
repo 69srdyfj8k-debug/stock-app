@@ -231,6 +231,57 @@ if page == "📊 總覽、新聞彙整與提問":
         else:
             st.info("暫無足夠估值數據進行自動買入判定。")
 
+    # ==========================================
+    # 🆕 新增：賣出/持股診斷 (Hold / Sell Checker)
+    # ==========================================
+    st.subheader("📊 持股賣出與止賺止蝕診斷")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        buy_cost = st.number_input("輸入你的買入成本價 ($):", min_value=0.0, value=float(current_price * 0.9), step=1.0)
+    with c2:
+        stop_loss_pct = st.slider("設定個人止蝕百分比 (Stop Loss %):", 5, 30, 10) / 100
+
+    if buy_cost > 0:
+        # 計算當前盈虧
+        pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
+        pnl_color = "green" if pnl_pct >= 0 else "red"
+        
+        st.markdown(f"**現時帳面盈虧**：:{pnl_color}[**{pnl_pct:+.2f}%**] (成本: ${buy_cost:.2f} ➔ 現價: ${current_price:.2f})")
+
+        # 賣出邏輯判定
+        stop_loss_price = buy_cost * (1 - stop_loss_pct)
+        target_sell_price = target_mean_price if target_mean_price else buy_cost * 1.2
+
+        st.markdown("---")
+        sell_reasons = []
+
+        # 1. 觸及止蝕
+        if current_price <= stop_loss_price:
+            sell_signal = "🔴 觸及止蝕點 (SELL / Stop Loss)"
+            sell_color = "red"
+            sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿個人止蝕線 (${stop_loss_price:.2f}，-{stop_loss_pct*100:.0f}%)，建議嚴格執行止蝕規避風險。")
+        
+        # 2. 達到目標獲利價
+        elif current_price >= target_sell_price:
+            sell_signal = "🟢 達到目標價 (TRIM / Take Profit)"
+            sell_color = "green"
+            sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標估值線 (${target_sell_price:.2f})，建議分批獲利減倉鎖定利潤。")
+
+        # 3. 繼續持有
+        else:
+            sell_signal = "🟡 繼續持有 (HOLD)"
+            sell_color = "orange"
+            sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間，基本面正常，可繼續 Holding。")
+
+        # 顯示診斷結果
+        st.markdown(f"### 賣出診斷建議： :{sell_color}[**{sell_signal}**]")
+        st.write(f"**建議止蝕觸發價**: ${stop_loss_price:.2f} | **建議獲利目標價**: ${target_sell_price:.2f}")
+
+        with st.expander("🔍 賣出診斷分析理由", expanded=True):
+            for sr in sell_reasons:
+                st.write(sr)
+                    
         # ==========================================
         # 📰 新聞分類彙整 + 自動 Conclusion 結語
         # ==========================================
@@ -314,57 +365,6 @@ if page == "📊 總覽、新聞彙整與提問":
     else:
         st.error("無法抓取數據。")
 
-# ==========================================
-    # 🆕 新增：賣出/持股診斷 (Hold / Sell Checker)
-    # ==========================================
-    st.subheader("📊 持股賣出與止賺止蝕診斷")
-
-    c1, c2 = st.columns(2)
-    with c1:
-        buy_cost = st.number_input("輸入你的買入成本價 ($):", min_value=0.0, value=float(current_price * 0.9), step=1.0)
-    with c2:
-        stop_loss_pct = st.slider("設定個人止蝕百分比 (Stop Loss %):", 5, 30, 10) / 100
-
-    if buy_cost > 0:
-        # 計算當前盈虧
-        pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
-        pnl_color = "green" if pnl_pct >= 0 else "red"
-        
-        st.markdown(f"**現時帳面盈虧**：:{pnl_color}[**{pnl_pct:+.2f}%**] (成本: ${buy_cost:.2f} ➔ 現價: ${current_price:.2f})")
-
-        # 賣出邏輯判定
-        stop_loss_price = buy_cost * (1 - stop_loss_pct)
-        target_sell_price = target_mean_price if target_mean_price else buy_cost * 1.2
-
-        st.markdown("---")
-        sell_reasons = []
-
-        # 1. 觸及止蝕
-        if current_price <= stop_loss_price:
-            sell_signal = "🔴 觸及止蝕點 (SELL / Stop Loss)"
-            sell_color = "red"
-            sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿個人止蝕線 (${stop_loss_price:.2f}，-{stop_loss_pct*100:.0f}%)，建議嚴格執行止蝕規避風險。")
-        
-        # 2. 達到目標獲利價
-        elif current_price >= target_sell_price:
-            sell_signal = "🟢 達到目標價 (TRIM / Take Profit)"
-            sell_color = "green"
-            sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標估值線 (${target_sell_price:.2f})，建議分批獲利減倉鎖定利潤。")
-
-        # 3. 繼續持有
-        else:
-            sell_signal = "🟡 繼續持有 (HOLD)"
-            sell_color = "orange"
-            sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間，基本面正常，可繼續 Holding。")
-
-        # 顯示診斷結果
-        st.markdown(f"### 賣出診斷建議： :{sell_color}[**{sell_signal}**]")
-        st.write(f"**建議止蝕觸發價**: ${stop_loss_price:.2f} | **建議獲利目標價**: ${target_sell_price:.2f}")
-
-        with st.expander("🔍 賣出診斷分析理由", expanded=True):
-            for sr in sell_reasons:
-                st.write(sr)
-                    
 # ==========================================
 # 📈 第二頁 : 技術走勢圖表 (優化操作版)
 # ==========================================
