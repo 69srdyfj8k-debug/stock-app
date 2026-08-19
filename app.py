@@ -145,19 +145,47 @@ translations = {
 lang = st.sidebar.radio("🌐 Select Language / 選擇語言", ["English", "繁體中文"])
 t = translations[lang]
 
-# Main UI Title
+# ------------------------------------------
+# 1. VERY TOP OF PAGE: Warnings & Beginner's Guide
+# ------------------------------------------
+ticker_symbol = st.sidebar.text_input("Ticker Quick Fetch", "AAPL").upper()
+stock = yf.Ticker(ticker_symbol)
+
+today = date.today()
+is_weekend = today.weekday() in [5, 6]
+
+try:
+    df_check = stock.history(period="5d", interval="1d")
+    last_data_date = df_check.index[-1].date() if not df_check.empty else None
+except Exception:
+    last_data_date = None
+
+if is_weekend:
+    st.warning(t["weekend_warning"])
+elif last_data_date and last_data_date < today:
+    st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
+
+with st.expander(t["guide_title"], expanded=False):
+    st.markdown(t["guide_content"])
+
+st.markdown("---")
+
+# ------------------------------------------
+# 2. MAIN HEADER & SEARCH
+# ------------------------------------------
 st.title(t["title"])
 
 col_search, col_margin = st.columns([2, 1])
 with col_search:
-    ticker_symbol = st.text_input(t["search_label"], "AAPL").upper()
+    ticker_input = st.text_input(t["search_label"], ticker_symbol).upper()
+    if ticker_input != ticker_symbol:
+        ticker_symbol = ticker_input
+        stock = yf.Ticker(ticker_symbol)
 with col_margin:
     required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
 
 if ticker_symbol:
-    stock = yf.Ticker(ticker_symbol)
     info = stock.info
-
     current_price = info.get('currentPrice') or info.get('regularMarketPrice') or getattr(stock, 'fast_info', {}).get('last_price', None)
 
     if current_price is not None:
@@ -168,34 +196,12 @@ if ticker_symbol:
         fcf = info.get('freeCashflow', 0)
         target_mean_price = info.get('targetMeanPrice', None)
 
-        # ------------------------------------------
-        # 1. Key Metrics (Top)
-        # ------------------------------------------
-        st.markdown("---")
+        # Key Metrics
         m1, m2, m3, m4 = st.columns(4)
         m1.metric(t["current_price"], f"{current_price} {currency}")
         m2.metric(t["trailing_pe"], f"{pe_ratio:.2f}" if pe_ratio else "N/A")
         m3.metric(t["forward_pe"], f"{forward_pe:.2f}" if forward_pe else "N/A")
         m4.metric(t["roe"], f"{roe * 100:.2f}%" if roe else "N/A")
-
-        # Load daily historical data for checking market holiday/dates
-        df_daily = stock.history(period="1y", interval="1d")
-
-        # ------------------------------------------
-        # 2. TOP OF PAGE NOTICES
-        # ------------------------------------------
-        today = date.today()
-        is_weekend = today.weekday() in [5, 6]
-        last_data_date = df_daily.index[-1].date() if not df_daily.empty else None
-
-        if is_weekend:
-            st.warning(t["weekend_warning"])
-        elif last_data_date and last_data_date < today:
-            st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
-
-        # Beginner's Guide placed at the top
-        with st.expander(t["guide_title"], expanded=False):
-            st.markdown(t["guide_content"])
 
         st.markdown("---")
 
@@ -316,32 +322,10 @@ if ticker_symbol:
             df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
             df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
 
-            latest_close = current_price
-            pct_change = 0.0
-            ma20_val = current_price
-            ma50_val = current_price
-            latest_rsi = 50.0
-            low_period = current_price
-
             if not df.empty:
                 df.index = pd.to_datetime(df.index)
                 df['MA20'] = df['Close'].rolling(window=20).mean()
                 df['MA50'] = df['Close'].rolling(window=50).mean()
-
-                delta = df['Close'].diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rs = gain / loss
-                df['RSI'] = 100 - (100 / (1 + rs))
-
-                latest_close = df['Close'].iloc[-1]
-                prev_close = df['Close'].iloc[-2] if len(df) > 1 else latest_close
-                price_change = latest_close - prev_close
-                pct_change = (price_change / prev_close) * 100 if prev_close != 0 else 0
-                latest_rsi = df['RSI'].dropna().iloc[-1] if not df['RSI'].dropna().empty else 50
-                ma20_val = df['MA20'].dropna().iloc[-1] if not df['MA20'].dropna().empty else latest_close
-                ma50_val = df['MA50'].dropna().iloc[-1] if not df['MA50'].dropna().empty else latest_close
-                low_period = df['Low'].min()
 
             fig = go.Figure(data=[go.Candlestick(
                 x=df.index,
