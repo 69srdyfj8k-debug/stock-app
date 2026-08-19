@@ -377,7 +377,10 @@ if current_price is not None:
         selected_config = config_mapping.get(time_frame, {"period": "1y", "interval": "1d"})
 
         # Sub-fetch specific timeframe for technical chart
-        df_chart = stock.history(period=selected_config["period"], interval=selected_config["interval"])
+        df_chart = yf.Ticker(ticker_symbol).history(
+            period=selected_config["period"], 
+            interval=selected_config["interval"]
+        )
         df_chart = df_chart.dropna(subset=['Open', 'High', 'Low', 'Close'])
 
         if not df_chart.empty:
