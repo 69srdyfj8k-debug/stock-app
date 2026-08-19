@@ -296,7 +296,13 @@ if current_price is not None:
         with c1:
             buy_cost = st.number_input(t["cost_label"], min_value=0.0, value=float(current_price * 0.9), step=1.0)
         with c2:
-            stop_loss_pct = st.slider(t["stop_loss_label"], 5, 30, 10) / 100
+            stop_loss_pct = st.number_input(
+                t["stop_loss_label"], 
+                min_value=1.0, 
+                max_value=95.0, 
+                value=10.0, 
+                step=1.0
+            ) / 100
 
         if buy_cost > 0:
             pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
