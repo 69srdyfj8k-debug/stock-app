@@ -145,26 +145,20 @@ translations = {
 lang = st.sidebar.radio("🌐 Select Language / 選擇語言", ["English", "繁體中文"])
 t = translations[lang]
 
+# Manage ticker state cleanly
+if "ticker" not in st.session_state:
+    st.session_state.ticker = "AAPL"
+
+# Single unified sidebar quick fetch
+sidebar_input = st.sidebar.text_input("Ticker Quick Fetch", value=st.session_state.ticker).upper()
+if sidebar_input and sidebar_input != st.session_state.ticker:
+    st.session_state.ticker = sidebar_input
+
+ticker_symbol = st.session_state.ticker
+
 # ------------------------------------------
-# 1. VERY TOP OF PAGE: Warnings & Beginner's Guide
+# 1. TOP OF PAGE: Beginner's Guide Expander
 # ------------------------------------------
-ticker_symbol = st.sidebar.text_input("Ticker Quick Fetch", "AAPL").upper()
-stock = yf.Ticker(ticker_symbol)
-
-today = date.today()
-is_weekend = today.weekday() in [5, 6]
-
-try:
-    df_check = stock.history(period="5d", interval="1d")
-    last_data_date = df_check.index[-1].date() if not df_check.empty else None
-except Exception:
-    last_data_date = None
-
-if is_weekend:
-    st.warning(t["weekend_warning"])
-elif last_data_date and last_data_date < today:
-    st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
-
 with st.expander(t["guide_title"], expanded=False):
     st.markdown(t["guide_content"])
 
@@ -177,14 +171,34 @@ st.title(t["title"])
 
 col_search, col_margin = st.columns([2, 1])
 with col_search:
-    ticker_input = st.text_input(t["search_label"], ticker_symbol).upper()
-    if ticker_input != ticker_symbol:
-        ticker_symbol = ticker_input
-        stock = yf.Ticker(ticker_symbol)
+    main_input = st.text_input(t["search_label"], value=ticker_symbol).upper()
+    if main_input != ticker_symbol:
+        st.session_state.ticker = main_input
+        st.rerun()
+
 with col_margin:
     required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
 
 if ticker_symbol:
+    stock = yf.Ticker(ticker_symbol)
+    
+    # Safely perform market holiday/weekend check after stock object is ready
+    today = date.today()
+    is_weekend = today.weekday() in [5, 6]
+    last_data_date = None
+
+    try:
+        df_check = stock.history(period="5d", interval="1d")
+        if not df_check.empty:
+            last_data_date = df_check.index[-1].date()
+    except Exception:
+        pass
+
+    if is_weekend:
+        st.warning(t["weekend_warning"])
+    elif last_data_date and last_data_date < today:
+        st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
+
     info = stock.info
     current_price = info.get('currentPrice') or info.get('regularMarketPrice') or getattr(stock, 'fast_info', {}).get('last_price', None)
 
