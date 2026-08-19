@@ -294,7 +294,13 @@ if current_price is not None:
 
         c1, c2 = st.columns(2)
         with c1:
-            buy_cost = st.number_input(t["cost_label"], min_value=0.0, value=float(current_price * 0.9), step=1.0)
+            buy_cost = st.number_input(
+                t["cost_label"], 
+                min_value=0.0, 
+                max_value=None,  # 唔限制上限，你打 90、900、9000 都得
+                value=float(current_price) if current_price else 100.0, 
+                step=0.1
+            )
         with c2:
             stop_loss_pct = st.number_input(
                 t["stop_loss_label"], 
