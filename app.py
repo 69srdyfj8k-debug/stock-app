@@ -174,12 +174,12 @@ if ticker_symbol:
     if is_weekend:
         st.warning(t["weekend_warning"])
     elif last_data_date and last_data_date < today:
-        st.info(t["holiday_warning"])
+        st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
 
-with st.expander(t["guide_title"], expanded=False):
+    with st.expander(t["guide_title"], expanded=False):
         st.markdown(t["guide_content"])
 
-st.markdown("---")
+    st.markdown("---")
 
 # ------------------------------------------
 # 2. MAIN HEADER & SEARCH
