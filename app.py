@@ -286,8 +286,7 @@ else:
         if roe and isinstance(roe, (int, float)):
             roe_display = f"{roe * 100:.1f}%"
             if roe > 0.15:
-                reasons.append(f"✅ ROE ({roe_display} > 15%) 股東回報率優秀。" if lang ==The error is caused by the backslash inside the f-string expression `{}` near `\vert{}`. Python f-strings do not allow backslashes `\` inside expressions between curly braces `{}`.
-
+                reasons.append(f"✅ ROE ({roe_display} > 15%) 股東回報率優秀。" if lang == "繁體中文" else f"✅ Strong ROE ({roe_display} > 15%).")
 ### The Fix
 
 If you intended to render a vertical pipe symbol (`|`), remove the backslash and the empty trailing braces:
