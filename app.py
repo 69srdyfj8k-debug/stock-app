@@ -18,6 +18,9 @@ translations = {
         "trailing_pe": "Trailing P/E",
         "forward_pe": "Forward P/E",
         "roe": "ROE",
+        "tab_buy": "🟢 Buy Decision",
+        "tab_sell": "🔴 Exit Diagnosis",
+        "tab_chart": "📊 Historical Chart",
         "decision_header": "💡 Buy Decision & Valuation Analysis",
         "signal_buy": "🟢 Buy Candidate",
         "signal_spec": "🟡 High Risk / Speculative Buy",
@@ -57,6 +60,9 @@ translations = {
         "trailing_pe": "Trailing P/E",
         "forward_pe": "Forward P/E",
         "roe": "ROE",
+        "tab_buy": "🟢 買入/觀望決策",
+        "tab_sell": "🔴 賣出/持股診斷",
+        "tab_chart": "📊 歷史走勢圖表",
         "decision_header": "💡 入手決策與估值分析",
         "signal_buy": "🟢 考慮入手 (Buy Candidate)",
         "signal_spec": "🟡 估值便宜但基本面一般 (High Risk / Speculative Buy)",
@@ -117,7 +123,7 @@ if ticker_symbol:
         fcf = info.get('freeCashflow', 0)
         target_mean_price = info.get('targetMeanPrice', None)
 
-        # Key Metrics
+        # Key Metrics (Always visible at top)
         st.markdown("---")
         m1, m2, m3, m4 = st.columns(4)
         m1.metric(t["current_price"], f"{current_price} {currency}")
@@ -125,110 +131,122 @@ if ticker_symbol:
         m3.metric(t["forward_pe"], f"{forward_pe:.2f}" if forward_pe else "N/A")
         m4.metric(t["roe"], f"{roe * 100:.2f}%" if roe else "N/A")
 
-        # Buy Decision Engine
-        st.subheader(t["decision_header"])
-
-        reasons = []
-
-        if target_mean_price:
-            fair_value = target_mean_price
-            max_buy_price = fair_value * (1 - required_margin)
-
-            if current_price <= max_buy_price:
-                price_ok = True
-                reasons.append(t["reason_price_ok"].format(current_price, max_buy_price, required_margin * 100))
-            else:
-                price_ok = False
-                reasons.append(t["reason_price_high"].format(current_price, max_buy_price))
-
-            health_ok = True
-            if roe and roe > 0.15:
-                reasons.append(t["reason_roe_ok"].format(roe * 100))
-            else:
-                health_ok = False
-                roe_str = f"{roe*100:.1f}%" if roe else "N/A"
-                reasons.append(t["reason_roe_weak"].format(roe_str))
-
-            if fcf and fcf > 0:
-                reasons.append(t["reason_fcf_ok"])
-            else:
-                reasons.append(t["reason_fcf_weak"])
-
-            if price_ok and health_ok:
-                buy_signal = t["signal_buy"]
-                signal_color = "green"
-            elif price_ok and not health_ok:
-                buy_signal = t["signal_spec"]
-                signal_color = "gold"
-            else:
-                buy_signal = t["signal_hold"]
-                signal_color = "red"
-
-            st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-            st.write(f"**{t['fair_val']}**: ${fair_value:.2f} | **{t['max_buy']}**: ${max_buy_price:.2f}")
-
-            with st.expander(t["expander_buy"], expanded=True):
-                for reason in reasons:
-                    st.write(reason)
-        else:
-            st.info(t["no_valuation_data"])
-
-        # Sell / Exit Diagnosis
-        st.subheader(t["sell_header"])
-
-        c1, c2 = st.columns(2)
-        with c1:
-            buy_cost = st.number_input(t["cost_label"], min_value=0.0, value=float(current_price * 0.9), step=1.0)
-        with c2:
-            stop_loss_pct = st.slider(t["stop_loss_label"], 5, 30, 10) / 100
-
-        if buy_cost > 0:
-            pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
-            pnl_color = "green" if pnl_pct >= 0 else "red"
-            
-            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (Cost: ${buy_cost:.2f} ➔ Current: ${current_price:.2f})")
-
-            stop_loss_price = buy_cost * (1 - stop_loss_pct)
-            target_sell_price = target_mean_price if target_mean_price else buy_cost * 1.2
-
-            st.markdown("---")
-            sell_reasons = []
-
-            if current_price <= stop_loss_price:
-                sell_signal = t["signal_stop"]
-                sell_color = "red"
-                sell_reasons.append(t["reason_stop"].format(current_price, stop_loss_price, stop_loss_pct * 100))
-            elif current_price >= target_sell_price:
-                sell_signal = t["signal_target"]
-                sell_color = "green"
-                sell_reasons.append(t["reason_target"].format(current_price, target_sell_price))
-            else:
-                sell_signal = t["signal_keep"]
-                sell_color = "orange"
-                sell_reasons.append(t["reason_keep"].format(stop_loss_price, target_sell_price))
-
-            st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
-            st.write(f"**{t['stop_price']}**: ${stop_loss_price:.2f} | **{t['target_sell']}**: ${target_sell_price:.2f}")
-
-            with st.expander(t["expander_sell"], expanded=True):
-                for sr in sell_reasons:
-                    st.write(sr)
-
-        # Historical Chart
         st.markdown("---")
-        st.subheader(t["chart_header"])
-        hist = stock.history(period="1y")
 
-        fig = go.Figure(data=[go.Candlestick(
-            x=hist.index,
-            open=hist['Open'],
-            high=hist['High'],
-            low=hist['Low'],
-            close=hist['Close'],
-            name="Price"
-        )])
-        fig.update_layout(title=f"{ticker_symbol} {t['chart_title']}", xaxis_rangeslider_visible=False, height=450)
-        st.plotly_chart(fig, use_container_width=True)
+        # 🔽 創建 3 個獨立的分頁 (Tabs)
+        tab_buy, tab_sell, tab_chart = st.tabs([t["tab_buy"], t["tab_sell"], t["tab_chart"]])
+
+        # ------------------------------------------
+        # Tab 1: 買入/觀望決策
+        # ------------------------------------------
+        with tab_buy:
+            st.subheader(t["decision_header"])
+            reasons = []
+
+            if target_mean_price:
+                fair_value = target_mean_price
+                max_buy_price = fair_value * (1 - required_margin)
+
+                if current_price <= max_buy_price:
+                    price_ok = True
+                    reasons.append(t["reason_price_ok"].format(current_price, max_buy_price, required_margin * 100))
+                else:
+                    price_ok = False
+                    reasons.append(t["reason_price_high"].format(current_price, max_buy_price))
+
+                health_ok = True
+                if roe and roe > 0.15:
+                    reasons.append(t["reason_roe_ok"].format(roe * 100))
+                else:
+                    health_ok = False
+                    roe_str = f"{roe*100:.1f}%" if roe else "N/A"
+                    reasons.append(t["reason_roe_weak"].format(roe_str))
+
+                if fcf and fcf > 0:
+                    reasons.append(t["reason_fcf_ok"])
+                else:
+                    reasons.append(t["reason_fcf_weak"])
+
+                if price_ok and health_ok:
+                    buy_signal = t["signal_buy"]
+                    signal_color = "green"
+                elif price_ok and not health_ok:
+                    buy_signal = t["signal_spec"]
+                    signal_color = "gold"
+                else:
+                    buy_signal = t["signal_hold"]
+                    signal_color = "red"
+
+                st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
+                st.write(f"**{t['fair_val']}**: ${fair_value:.2f} | **{t['max_buy']}**: ${max_buy_price:.2f}")
+
+                with st.expander(t["expander_buy"], expanded=True):
+                    for reason in reasons:
+                        st.write(reason)
+            else:
+                st.info(t["no_valuation_data"])
+
+        # ------------------------------------------
+        # Tab 2: 賣出/持股診斷
+        # ------------------------------------------
+        with tab_sell:
+            st.subheader(t["sell_header"])
+
+            c1, c2 = st.columns(2)
+            with c1:
+                buy_cost = st.number_input(t["cost_label"], min_value=0.0, value=float(current_price * 0.9), step=1.0)
+            with c2:
+                stop_loss_pct = st.slider(t["stop_loss_label"], 5, 30, 10) / 100
+
+            if buy_cost > 0:
+                pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
+                pnl_color = "green" if pnl_pct >= 0 else "red"
+                
+                st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (Cost: ${buy_cost:.2f} ➔ Current: ${current_price:.2f})")
+
+                stop_loss_price = buy_cost * (1 - stop_loss_pct)
+                target_sell_price = target_mean_price if target_mean_price else buy_cost * 1.2
+
+                st.markdown("---")
+                sell_reasons = []
+
+                if current_price <= stop_loss_price:
+                    sell_signal = t["signal_stop"]
+                    sell_color = "red"
+                    sell_reasons.append(t["reason_stop"].format(current_price, stop_loss_price, stop_loss_pct * 100))
+                elif current_price >= target_sell_price:
+                    sell_signal = t["signal_target"]
+                    sell_color = "green"
+                    sell_reasons.append(t["reason_target"].format(current_price, target_sell_price))
+                else:
+                    sell_signal = t["signal_keep"]
+                    sell_color = "orange"
+                    sell_reasons.append(t["reason_keep"].format(stop_loss_price, target_sell_price))
+
+                st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
+                st.write(f"**{t['stop_price']}**: ${stop_loss_price:.2f} | **{t['target_sell']}**: ${target_sell_price:.2f}")
+
+                with st.expander(t["expander_sell"], expanded=True):
+                    for sr in sell_reasons:
+                        st.write(sr)
+
+        # ------------------------------------------
+        # Tab 3: 獨立的歷史走勢圖表
+        # ------------------------------------------
+        with tab_chart:
+            st.subheader(t["chart_header"])
+            hist = stock.history(period="1y")
+
+            fig = go.Figure(data=[go.Candlestick(
+                x=hist.index,
+                open=hist['Open'],
+                high=hist['High'],
+                low=hist['Low'],
+                close=hist['Close'],
+                name="Price"
+            )])
+            fig.update_layout(title=f"{ticker_symbol} {t['chart_title']}", xaxis_rangeslider_visible=False, height=500)
+            st.plotly_chart(fig, use_container_width=True)
 
     else:
         st.error(t["not_found"])
