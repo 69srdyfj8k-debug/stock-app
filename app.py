@@ -291,24 +291,26 @@ if current_price is not None:
     # Tab 2: Exit / Sell Diagnosis
     with tab_sell:
         st.subheader(t["sell_header"])
-
+    
         c1, c2 = st.columns(2)
         with c1:
+            # 1. 買入成本價：只設 min_value=0.0，取消 step 限制，允許任意金額
             buy_cost = st.number_input(
                 t["cost_label"], 
                 min_value=0.0, 
-                max_value=None,  # 唔限制上限，你打 90、900、9000 都得
-                value=float(current_price) if current_price else 100.0, 
-                step=0.1
+                value=float(current_price) if current_price else 100.0,
+                format="%.2f"
             )
         with c2:
-            stop_loss_pct = st.number_input(
-                t["stop_loss_label"], 
-                min_value=1.0, 
-                max_value=95.0, 
-                value=10.0, 
+            # 2. 止蝕百分比：改用 number_input（可直接打 1-100 任意數字，不再受 Slider 限制）
+            stop_loss_input = st.number_input(
+                "設定個人止蝕百分比 (%)", 
+                min_value=0.0, 
+                max_value=100.0, 
+                value=10.0,
                 step=1.0
-            ) / 100
+            )
+            stop_loss_pct = stop_loss_input / 100.0
 
         if buy_cost > 0:
             pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
