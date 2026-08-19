@@ -169,28 +169,28 @@ ticker_symbol = st.session_state.ticker
 def fetch_stock_data(ticker):
     s = yf.Ticker(ticker)
     
-    # 1. 優先抓取 K線歷史資料
+    # 1. 抓取 K線歷史資料
     try:
         df_hist = s.history(period="1y")
     except Exception:
         df_hist = pd.DataFrame()
         
-    # 2. 獨立抓取 info（失敗就給空字典，不影響 K 線）
+    # 2. 抓取 info
     try:
         info_data = s.info or {}
     except Exception:
         info_data = {}
         
-    # 3. 獨立抓取 news
+    # 3. 抓取 news
     try:
         news_data = getattr(s, 'news', []) or []
     except Exception:
         news_data = []
 
-    return s, df_hist, info_data, news_data
-
-stock, df, info, news = fetch_stock_data(ticker_symbol)
-
+    # ⚠️ 不要回傳 s，只回傳 df_hist, info_data, news_data
+    return df_hist, info_data, news_data
+    
+df, info, news = fetch_stock_data(ticker_symbol)
 # ------------------------------------------
 # 1. TOP OF PAGE: Beginner's Guide & Market Status
 # ------------------------------------------
