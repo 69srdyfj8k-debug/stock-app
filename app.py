@@ -162,6 +162,12 @@ ticker_symbol = st.session_state.ticker
 with st.expander(t["guide_title"], expanded=False):
     st.markdown(t["guide_content"])
 
+if is_weekend:
+        with st.expander(t["weekend_warning"], expanded=False):
+        st.markdown(t["weekend warning"])
+    elif last_data_date and last_data_date < today:
+        st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
+
 st.markdown("---")
 
 # ------------------------------------------
@@ -193,12 +199,7 @@ if ticker_symbol:
             last_data_date = df_check.index[-1].date()
     except Exception:
         pass
-
-    if is_weekend:
-        st.warning(t["weekend_warning"])
-    elif last_data_date and last_data_date < today:
-        st.info(t["holiday_warning"].format(today=today, last_date=last_data_date))
-
+    
     info = stock.info
     current_price = info.get('currentPrice') or info.get('regularMarketPrice') or getattr(stock, 'fast_info', {}).get('last_price', None)
 
