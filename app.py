@@ -163,18 +163,18 @@ ticker_symbol = st.session_state.ticker
 # ------------------------------------------
 
 # Safely perform market holiday/weekend check after stock object is ready
-#if ticker_symbol:
- #   stock = yf.Ticker(ticker_symbol)
-  #  df = stock.history(period="1y")
+if ticker_symbol:
+    stock = yf.Ticker(ticker_symbol)
+    df = stock.history(period="1y")
     
-today = date.today()
-is_weekend = today.weekday() in [5, 6]
-last_data_date = df.index[-1].date() if not df.empty else None
-
-if is_weekend:
-    st.warning(t["weekend_warning"])
-elif last_data_date and last_data_date < today:
-    st.info(t["holiday_warning"])
+    today = date.today()
+    is_weekend = today.weekday() in [5, 6]
+    last_data_date = df.index[-1].date() if not df.empty else None
+    
+    if is_weekend:
+        st.warning(t["weekend_warning"])
+    elif last_data_date and last_data_date < today:
+        st.info(t["holiday_warning"])
 
 with st.expander(t["guide_title"], expanded=False):
         st.markdown(t["guide_content"])
