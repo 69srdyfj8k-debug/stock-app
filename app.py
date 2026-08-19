@@ -389,10 +389,6 @@ else:
         col3.metric(t["ma50_support"], f"${ma50_val:.2f}")
         col4.metric(t["rsi_val"], f"{latest_rsi:.1f}")
 
-        # K線圖
-        st.subheader("📈 價格走勢圖")
-        st.line_chart(df[['Close', 'MA20', 'MA50']])
-
         st.divider()
 
         # 市場新聞分類展示
