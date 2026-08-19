@@ -164,6 +164,11 @@ ticker_symbol = st.session_state.ticker
 with st.expander(t["guide_title"], expanded=False):
     st.markdown(t["guide_content"])
 
+    # Safely perform market holiday/weekend check after stock object is ready
+    today = date.today()
+    is_weekend = today.weekday() in [5, 6]
+    last_data_date = None
+    
     if is_weekend:
         with st.expander(t["weekend_warning"], expanded=False):
             st.markdown(t["weekend_detail"])
@@ -192,11 +197,6 @@ with col_margin:
 
 if ticker_symbol:
     stock = yf.Ticker(ticker_symbol)
-    
-    # Safely perform market holiday/weekend check after stock object is ready
-    today = date.today()
-    is_weekend = today.weekday() in [5, 6]
-    last_data_date = None
 
     try:
         df_check = stock.history(period="5d", interval="1d")
