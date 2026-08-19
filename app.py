@@ -316,9 +316,20 @@ else:
 
         # 賣出/持股診斷
         st.subheader(t["sell_diag_title"])
+        
+        # 使用 Session State 避免重新渲染時重置輸入值
+        cost_key = f"buy_cost_{symbol}"
+        if cost_key not in st.session_state:
+            st.session_state[cost_key] = float(round(current_price * 0.9, 2))
+        
         c1, c2 = st.columns(2)
         with c1:
-            buy_cost = st.number_input(t["buy_cost_label"], min_value=0.0, value=float(current_price * 0.9), step=1.0)
+            buy_cost = st.number_input(
+                t["buy_cost_label"],
+                min_value=0.0,
+                key=cost_key,
+                step=1.0
+            )
         with c2:
             stop_loss_pct = st.slider(t["stop_loss_label"], 5, 30, 10) / 100
 
