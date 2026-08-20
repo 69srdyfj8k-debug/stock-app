@@ -126,6 +126,20 @@ translations = {
 lang = st.radio("🌐 語言 / Language", ["繁體中文", "English"], horizontal=True)
 t = translations[lang]
 
+# --- 休市提示 ---
+today = date.today()
+is_weekend = today.weekday() in [5, 6]
+last_data_date = df.index[-1].date()
+
+if is_weekend:
+    st.warning(t["weekend_warn"])
+elif last_data_date < today:
+    st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
+
+# --- 頂部提示：Timeframe 指引 ---
+with st.expander(t["guide_title"], expanded=False):
+    st.markdown(t["guide_content"])
+
 col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
 with col_setting1:
     symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
@@ -227,20 +241,6 @@ else:
                     grouped_news[t["cat_general"]].append({"title": title, "publisher": provider, "url": click_url})
     except Exception:
         pass
-
-    # --- 休市提示 ---
-    today = date.today()
-    is_weekend = today.weekday() in [5, 6]
-    last_data_date = df.index[-1].date()
-
-    if is_weekend:
-        st.warning(t["weekend_warn"])
-    elif last_data_date < today:
-        st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
-
-    # --- 頂部提示：Timeframe 指引 ---
-    with st.expander(t["guide_title"], expanded=False):
-        st.markdown(t["guide_content"])
 
     # ==========================================
     # 📊 股票總覽 (放在小白指南下方)
