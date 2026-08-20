@@ -303,7 +303,7 @@ else:
 
         if target_mean_price and isinstance(target_mean_price, (int, float)) and target_mean_price > 0:
             fair_value = float(target_mean_price)
-            valuation_source = "華爾街大行平均目標價 (Analyst Target Price)"
+            #valuation_source = "華爾街大行平均目標價 (Analyst Target Price)"
         elif eps and pe and isinstance(eps, (int, float)) and isinstance(pe, (int, float)) and eps > 0 and pe > 0:
             fair_value = float(eps * pe)
             valuation_source = "預估 EPS × P/E 估值法"
