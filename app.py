@@ -158,33 +158,6 @@ if is_weekend:
 elif last_data_date < today:
     st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
 
-# --- 頂部提示：Timeframe 指引 ---
-with st.expander(t["guide_title"], expanded=False):
-    st.markdown(t["guide_content"])
-
-col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
-with col_setting1:
-    symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
-with col_setting2:
-    required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
-with col_setting3:
-    time_frame = st.pills(
-        t["timeframe_label"],
-        options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
-        default="1d"
-    )
-
-config_mapping = {
-    "15m": {"period": "7d", "interval": "15m"},
-    "30m": {"period": "14d", "interval": "30m"},
-    "1h":  {"period": "1mo", "interval": "1h"},
-    "1d":  {"period": "2y",  "interval": "1d"},
-    "1wk": {"period": "5y",  "interval": "1wk"},
-    "1mo": {"period": "max", "interval": "1mo"}
-}
-
-selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1d"})
-
     # --- 計算技術指標 ---
     df['MA20'] = df['Close'].rolling(window=20).mean()
     df['MA50'] = df['Close'].rolling(window=50).mean()
@@ -211,6 +184,33 @@ selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1
 
     high_period = float(df['High'].max())
     low_period = float(df['Low'].min())
+
+# --- 頂部提示：Timeframe 指引 ---
+with st.expander(t["guide_title"], expanded=False):
+    st.markdown(t["guide_content"])
+
+col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
+with col_setting1:
+    symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
+with col_setting2:
+    required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
+with col_setting3:
+    time_frame = st.pills(
+        t["timeframe_label"],
+        options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
+        default="1d"
+    )
+
+config_mapping = {
+    "15m": {"period": "7d", "interval": "15m"},
+    "30m": {"period": "14d", "interval": "30m"},
+    "1h":  {"period": "1mo", "interval": "1h"},
+    "1d":  {"period": "2y",  "interval": "1d"},
+    "1wk": {"period": "5y",  "interval": "1wk"},
+    "1mo": {"period": "max", "interval": "1mo"}
+}
+
+selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1d"})
 
     # --- 新聞抓取 ---
     grouped_news = {
