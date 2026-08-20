@@ -400,7 +400,7 @@ else:
                     st.write(sr)
 
     # --- 🥉 Tab 2：📰 實時市場新聞 ---
-    with tab3:
+    with tab2:
         st.subheader(t["news_header"])
         if news_count > 0:
             for cat, items in grouped_news.items():
