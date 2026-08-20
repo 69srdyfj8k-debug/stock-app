@@ -371,7 +371,7 @@ else:
         if buy_cost > 0:
             pnl_pct = ((current_price - buy_cost) / buy_cost) * 100
             pnl_color = "green" if pnl_pct >= 0 else "red"
-            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (${buy_cost:.2f} ➔ ${current_price:.2f})")
+            st.markdown(f"**{t['pnl_label']}**：:{pnl_color}[**{pnl_pct:+.2f}%**] (\${buy_cost:.2f} ➔ \${current_price:.2f})")
 
             stop_loss_price = buy_cost * (1 - stop_loss_pct)
             target_sell_price = target_price if isinstance(target_price, (int, float)) and target_price > 0 else buy_cost * 1.2
@@ -381,16 +381,16 @@ else:
 
             if current_price <= stop_loss_price:
                 sell_signal, sell_color = ("🔴 觸及止蝕點 (SELL / Stop Loss)" if lang == "繁體中文" else "🔴 SELL / Stop Loss"), "red"
-                sell_reasons.append(f"❌ 現價 (${current_price:.2f}) 已跌穿止蝕線 (${stop_loss_price:.2f})。" if lang == "繁體中文" else f"❌ Price (${current_price:.2f}) below stop-loss (${stop_loss_price:.2f}).")
+                sell_reasons.append(f"❌ 現價 (\${current_price:.2f}) 已跌穿止蝕線 (\${stop_loss_price:.2f})。" if lang == "繁體中文" else f"❌ Price (\${current_price:.2f}) below stop-loss (\${stop_loss_price:.2f}).")
             elif current_price >= target_sell_price:
                 sell_signal, sell_color = ("🟢 達到目標價 (TRIM / Take Profit)" if lang == "繁體中文" else "🟢 TRIM / Take Profit"), "green"
-                sell_reasons.append(f"🎉 現價 (${current_price:.2f}) 已達目標價 (${target_sell_price:.2f})。" if lang == "繁體中文" else f"🎉 Price (${current_price:.2f}) reached target (${target_sell_price:.2f}).")
+                sell_reasons.append(f"🎉 現價 (\${current_price:.2f}) 已達目標價 (\${target_sell_price:.2f})。" if lang == "繁體中文" else f"🎉 Price (\${current_price:.2f}) reached target (\${target_sell_price:.2f}).")
             else:
                 sell_signal, sell_color = ("🟡 繼續持有 (HOLD)" if lang == "繁體中文" else "🟡 HOLD"), "orange"
-                sell_reasons.append(f"✅ 現價於止蝕價 (${stop_loss_price:.2f}) 與目標價 (${target_sell_price:.2f}) 之間。" if lang == "繁體中文" else f"✅ Price between stop-loss (${stop_loss_price:.2f}) and target (${target_sell_price:.2f}).")
+                sell_reasons.append(f"✅ 現價於止蝕價 (\${stop_loss_price:.2f}) 與目標價 (\${target_sell_price:.2f}) 之間。" if lang == "繁體中文" else f"✅ Price between stop-loss (\${stop_loss_price:.2f}) and target (\${target_sell_price:.2f}).")
 
             st.markdown(f"### Exit Signal: :{sell_color}[**{sell_signal}**]")
-            st.write(f"**{t['stop_price_label']}**: ${stop_loss_price:.2f} | **{t['target_sell_label']}**: ${target_sell_price:.2f}")
+            st.write(f"**{t['stop_price_label']}**: \${stop_loss_price:.2f} | **{t['target_sell_label']}**: \${target_sell_price:.2f}")
 
             with st.expander(t["view_sell_reasons"], expanded=True):
                 for sr in sell_reasons:
