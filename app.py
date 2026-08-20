@@ -308,15 +308,15 @@ else:
             price_ok = True
             margin_pct = int(required_margin * 100)
             if lang == "繁體中文":
-                reasons.append(f"✅ 現價 (${current_price:.2f}) 低於買入上限價 (${max_buy_price:.2f})，安全邊際達 {margin_pct}%。")
+                reasons.append(f"✅ 現價 (＄{current_price:.2f}) 低於買入上限價 (＄{max_buy_price:.2f})，安全邊際達 {margin_pct}%。")
             else:
-                reasons.append(f"✅ Price (${current_price:.2f}) is below max buy price (${max_buy_price:.2f}), offering >{margin_pct}% margin of safety.")
+                reasons.append(f"✅ Price (＄{current_price:.2f}) is below max buy price (＄{max_buy_price:.2f}), offering >{margin_pct}% margin of safety.")
         else:
             price_ok = False
             if lang == "繁體中文":
-                reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於買入上限價 (${max_buy_price:.2f})，折讓幅度不足。")
+                reasons.append(f"⚠️ 現價 (＄{current_price:.2f}) 高於買入上限價 (＄{max_buy_price:.2f})，折讓幅度不足。")
             else:
-                reasons.append(f"⚠️ Price (${current_price:.2f}) exceeds max buy price (${max_buy_price:.2f}). Insufficient discount.")
+                reasons.append(f"⚠️ Price (＄{current_price:.2f}) exceeds max buy price (＄{max_buy_price:.2f}). Insufficient discount.")
 
         health_ok = True
         if roe and isinstance(roe, (int, float)):
@@ -332,7 +332,7 @@ else:
         if fcf and isinstance(fcf, (int, float)) and fcf > 0:
             reasons.append("✅ 自由現金流 (FCF) 為正數。" if lang == "繁體中文" else "✅ Free Cash Flow is positive.")
 
-        reasons.append(f"📌 估值基準來源：`{valuation_source}`")
+      #  reasons.append(f"📌 估值基準來源：`{valuation_source}`")
 
         if price_ok and health_ok:
             buy_signal, signal_color = ("🟢 考慮入手 (Buy Candidate)" if lang == "繁體中文" else "🟢 Buy Candidate"), "green"
@@ -342,7 +342,7 @@ else:
             buy_signal, signal_color = ("🔴 建議觀望 / 暫不入手 (Wait for Dip)" if lang == "繁體中文" else "🔴 Wait for Dip"), "red"
 
         st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-        st.write(f"**{t['fair_val']}** ${fair_value:.2f} | **{t['max_buy']}** ${max_buy_price:.2f}")
+        st.write(f"**{t['fair_val']}** ＄{fair_value:.2f} | **{t['max_buy']}** ${max_buy_price:.2f}")
 
         with st.expander(t["view_buy_reasons"], expanded=True):
             for reason in reasons:
