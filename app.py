@@ -2,7 +2,6 @@ import streamlit as st
 import yfinance as yf
 from datetime import date
 import pandas as pd
-df = pd.DataFrame()
 
 st.set_page_config(
     page_title="Stock Analysis System / 股票分析系統",
@@ -128,30 +127,32 @@ lang = st.radio("🌐 語言 / Language", ["繁體中文", "English"], horizonta
 t = translations[lang]
 
 # --- 休市提示 ---
+df = pd.DataFrame()
+df.index = pd.to_datetime(df.index)
 today = date.today()
 is_weekend = today.weekday() in [5, 6]
 last_data_date = df.index[-1].date()
 
-if is_weekend:
-    st.warning(t["weekend_warn"])
-elif last_data_date < today:
-    st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
-
-# --- 頂部提示：Timeframe 指引 ---
-with st.expander(t["guide_title"], expanded=False):
-    st.markdown(t["guide_content"])
-
-col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
-with col_setting1:
-    symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
-with col_setting2:
-    required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
-with col_setting3:
-    time_frame = st.pills(
-        t["timeframe_label"],
-        options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
-        default="1d"
-    )
+    if is_weekend:
+        st.warning(t["weekend_warn"])
+    elif last_data_date < today:
+        st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
+    
+    # --- 頂部提示：Timeframe 指引 ---
+    with st.expander(t["guide_title"], expanded=False):
+        st.markdown(t["guide_content"])
+    
+    col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
+    with col_setting1:
+        symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
+    with col_setting2:
+        required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
+    with col_setting3:
+        time_frame = st.pills(
+            t["timeframe_label"],
+            options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
+            default="1d"
+        )
 
 config_mapping = {
     "15m": {"period": "7d", "interval": "15m"},
@@ -185,7 +186,6 @@ if df is None or df.empty or len(df) < 2:
     st.error(t["data_error"])
 else:
     # --- 計算技術指標 ---
-    df.index = pd.to_datetime(df.index)
     df['MA20'] = df['Close'].rolling(window=20).mean()
     df['MA50'] = df['Close'].rolling(window=50).mean()
 
