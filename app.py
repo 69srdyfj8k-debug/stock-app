@@ -2,6 +2,7 @@ import streamlit as st
 import yfinance as yf
 from datetime import date
 import pandas as pd
+df = pd.DataFrame()
 
 st.set_page_config(
     page_title="Stock Analysis System / 股票分析系統",
@@ -166,7 +167,6 @@ selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1
 # --- 安全抓取數據 ---
 stock = yf.Ticker(symbol)
 info = {}
-df = pd.DataFrame()
 
 try:
     info = stock.info or {}
