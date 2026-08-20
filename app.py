@@ -126,12 +126,32 @@ translations = {
 lang = st.radio("🌐 語言 / Language", ["繁體中文", "English"], horizontal=True)
 t = translations[lang]
 
-# --- 休市提示 ---
+# --- 安全抓取數據 ---
+stock = yf.Ticker(symbol)
+info = {}
 df = pd.DataFrame()
-df.index = pd.to_datetime(df.index)
-today = date.today()
-is_weekend = today.weekday() in [5, 6]
-last_data_date = df.index[-1].date()
+
+try:
+    info = stock.info or {}
+except Exception:
+    info = {}
+
+try:
+    df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
+    if df is not None and not df.empty:
+        df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+except Exception:
+    df = pd.DataFrame()
+
+# --- 核心邏輯判斷 ---
+if df is None or df.empty or len(df) < 2:
+    st.error(t["data_error"])
+else:
+    # --- 休市提示 ---
+    df.index = pd.to_datetime(df.index)    
+    today = date.today()
+    is_weekend = today.weekday() in [5, 6]
+    last_data_date = df.index[-1].date()
 
 if is_weekend:
     st.warning(t["weekend_warn"])
@@ -165,26 +185,6 @@ config_mapping = {
 
 selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1d"})
 
-# --- 安全抓取數據 ---
-stock = yf.Ticker(symbol)
-info = {}
-
-try:
-    info = stock.info or {}
-except Exception:
-    info = {}
-
-try:
-    df = stock.history(period=selected_config["period"], interval=selected_config["interval"])
-    if df is not None and not df.empty:
-        df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
-except Exception:
-    df = pd.DataFrame()
-
-# --- 核心邏輯判斷 ---
-if df is None or df.empty or len(df) < 2:
-    st.error(t["data_error"])
-else:
     # --- 計算技術指標 ---
     df['MA20'] = df['Close'].rolling(window=20).mean()
     df['MA50'] = df['Close'].rolling(window=50).mean()
