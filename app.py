@@ -342,7 +342,7 @@ else:
             buy_signal, signal_color = ("🔴 建議觀望 / 暫不入手 (Wait for Dip)" if lang == "繁體中文" else "🔴 Wait for Dip"), "red"
 
         st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-        st.write(f"**{t['fair_val']}** (\${fair_value:.2f}) | **{t['max_buy']}** (\${max_buy_price:.2f}"))
+        st.write(f"**{t['fair_val']}** (\${fair_value:.2f}) | **{t['max_buy']}** (\${max_buy_price:.2f})")
 
         with st.expander(t["view_buy_reasons"], expanded=True):
             for reason in reasons:
