@@ -124,7 +124,7 @@ translations = {
     }
 }
 
-# --- 頂部控制欄 ---
+# --- 頂部語言切換 ---
 lang = st.radio("🌐 語言 / Language", ["繁體中文", "English"], horizontal=True)
 t = translations[lang]
 
@@ -132,18 +132,7 @@ t = translations[lang]
 with st.expander(t["guide_title"], expanded=False):
     st.markdown(t["guide_content"])
 
-col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
-with col_setting1:
-    symbol = st.text_input(t["symbol_label"], value="AAPL").upper().strip()
-with col_setting2:
-    required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
-with col_setting3:
-    time_frame = st.pills(
-        t["timeframe_label"],
-        options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
-        default="1d"
-    )
-
+# --- 1. 預先宣告與預讀輸入參數，以便在輸入框出現前進行數據與休市判斷 ---
 config_mapping = {
     "15m": {"period": "7d", "interval": "15m"},
     "30m": {"period": "14d", "interval": "30m"},
@@ -153,10 +142,14 @@ config_mapping = {
     "1mo": {"period": "max", "interval": "1mo"}
 }
 
-selected_config = config_mapping.get(time_frame, {"period": "2y", "interval": "1d"})
+# 使用 session_state 或預設值獲取當前 Symbol / Timeframe
+current_symbol = st.session_state.get("ticker_symbol", "AAPL").upper().strip()
+current_tf = st.session_state.get("pills_tf", "1d")
 
-# --- 安全抓取數據 ---
-stock = yf.Ticker(symbol)
+selected_config = config_mapping.get(current_tf, {"period": "2y", "interval": "1d"})
+
+# --- 2. 安全抓取數據與休市診斷 ---
+stock = yf.Ticker(current_symbol)
 info = {}
 df = pd.DataFrame()
 
@@ -172,11 +165,8 @@ try:
 except Exception:
     df = pd.DataFrame()
 
-# --- 核心邏輯判斷 ---
-if df is None or df.empty or len(df) < 2:
-    st.error(t["data_error"])
-else:
-    # --- 休市提示 (數據抓取成功後才計算) ---
+# --- 3. 將休市提示訊息放在「股票代號」輸入欄位的正上方 ---
+if df is not None and not df.empty and len(df) >= 2:
     df.index = pd.to_datetime(df.index)
     today = date.today()
     is_weekend = today.weekday() in [5, 6]
@@ -187,7 +177,25 @@ else:
     elif last_data_date < today:
         st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
 
-    # --- 計算技術指標 ---
+# --- 4. 參數設定輸入欄位 ---
+col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
+with col_setting1:
+    symbol = st.text_input(t["symbol_label"], value="AAPL", key="ticker_symbol").upper().strip()
+with col_setting2:
+    required_margin = st.slider(t["margin_label"], 5, 40, 20) / 100
+with col_setting3:
+    time_frame = st.pills(
+        t["timeframe_label"],
+        options=["15m", "30m", "1h", "1d", "1wk", "1mo"],
+        default="1d",
+        key="pills_tf"
+    )
+
+# --- 5. 核心數據處理與繪製主畫面 ---
+if df is None or df.empty or len(df) < 2:
+    st.error(t["data_error"])
+else:
+    # 計算技術指標
     df['MA20'] = df['Close'].rolling(window=20).mean()
     df['MA50'] = df['Close'].rolling(window=50).mean()
 
@@ -214,7 +222,7 @@ else:
     high_period = float(df['High'].max())
     low_period = float(df['Low'].min())
 
-    # --- 新聞抓取 ---
+    # 新聞抓取
     grouped_news = {
         t["cat_earnings"]: [],
         t["cat_ratings"]: [],
@@ -275,9 +283,9 @@ else:
     st.divider()
 
     # ==========================================
-    # 🎯 中間 Tab 選單 (把 AI 助手放在中間)
+    # 🎯 中間 Tab 選單
     # ==========================================
-    tab1, tab2 = st.tabs([t["p1_title"], t["p2_title"]])
+    tab1, tab2, tab3 = st.tabs([t["p1_title"], t["p_assistant_title"], t["p2_title"]])
 
     # --- 🥇 Tab 1：💡 估值與持股診斷 ---
     with tab1:
@@ -399,8 +407,45 @@ else:
                 for sr in sell_reasons:
                     st.write(sr)
 
-    # --- 🥉 Tab 2：📰 實時市場新聞 ---
+    # --- 🥈 Tab 2：💬 智能 AI 助手 ---
     with tab2:
+        st.subheader(t["assistant_title"])
+        st.info(t["chat_hint"])
+
+        chat_history_key = f"chat_history_{symbol}"
+        if chat_history_key not in st.session_state:
+            st.session_state[chat_history_key] = []
+
+        for msg in st.session_state[chat_history_key]:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+
+        user_query = st.chat_input(t["chat_placeholder"])
+        if user_query:
+            st.session_state[chat_history_key].append({"role": "user", "content": user_query})
+            with st.chat_message("user"):
+                st.write(user_query)
+
+            q = user_query.lower()
+            if "價" in q or "price" in q:
+                reply = f"📈 **{symbol}** 目前最新價為 **\${latest_close:.2f}**，今日變動幅度為 **{pct_change:+.2f}%**。"
+            elif "支持" in q or "support" in q or "ma" in q:
+                reply = f"🛡️ **{symbol}** 的短期支持位 (20MA) 為 **\${ma20_val:.2f}**，中期支持位 (50MA) 為 **\${ma50_val:.2f}**。"
+            elif "rsi" in q:
+                reply = f"📊 當前 RSI (14) 指標為 **{latest_rsi:.1f}**。" + (" (處於超買區域，注意回調風險)" if latest_rsi > 70 else (" (處於超賣區域，可能存在反彈機會)" if latest_rsi < 30 else " (處於中性區間)"))
+            elif "止損" in q or "止蝕" in q or "stop loss" in q:
+                reply = f"⚠️ 根據目前設定，建倉價位不同對應之止蝕觸發點會有所變化。建議維持固定風控比例（如 10%）。"
+            elif "新聞" in q or "news" in q:
+                reply = f"📰 目前共抓取到 **{news_count}** 條與 {symbol} 相關的即時新聞，您可以切換至「實時市場新聞」頁簽查看詳細列表。"
+            else:
+                reply = f"🤖 我是 {symbol} 的 AI 助手。您可以詢問關於現價、支持位 (20MA/50MA)、RSI 或新聞動態等數據。"
+
+            st.session_state[chat_history_key].append({"role": "assistant", "content": reply})
+            with st.chat_message("assistant"):
+                st.write(reply)
+
+    # --- 🥉 Tab 3：📰 實時市場新聞 ---
+    with tab3:
         st.subheader(t["news_header"])
         if news_count > 0:
             for cat, items in grouped_news.items():
