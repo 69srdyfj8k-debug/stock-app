@@ -293,7 +293,7 @@ else:
 
         if target_mean_price and isinstance(target_mean_price, (int, float)) and target_mean_price > 0:
             fair_value = float(target_mean_price)
-            valuation_source = "華爾街大行平均目標價 (Analyst Target Price)"
+            #valuation_source = "華爾街大行平均目標價 (Analyst Target Price)"
         elif eps and pe and isinstance(eps, (int, float)) and isinstance(pe, (int, float)) and eps > 0 and pe > 0:
             fair_value = float(eps * pe)
             valuation_source = "預估 EPS × P/E 估值法"
@@ -306,10 +306,17 @@ else:
 
         if current_price <= max_buy_price:
             price_ok = True
-            reasons.append(f"✅ 現價 (${current_price:.2f}) 低於買入上限價 (${max_buy_price:.2f})，安全邊際達 {required_margin*100:.0f}%。" if lang == "繁體中文" else f"✅ Price (${current_price:.2f}) below max buy price (${max_buy_price:.2f}), offering >{required_margin*100:.0f}% margin of safety.")
+            margin_pct = int(required_margin * 100)
+            if lang == "繁體中文":
+                reasons.append(f"✅ 現價 (${current_price:.2f}) 低於買入上限價 (${max_buy_price:.2f})，安全邊際達 {margin_pct}%。")
+            else:
+                reasons.append(f"✅ Price (${current_price:.2f}) is below max buy price (${max_buy_price:.2f}), offering >{margin_pct}% margin of safety.")
         else:
             price_ok = False
-            reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於買入上限價 (${max_buy_price:.2f})，折讓幅度不足。" if lang == "繁體中文" else f"⚠️ Price (${current_price:.2f}) exceeds max buy price (${max_buy_price:.2f}). Insufficient discount.")
+            if lang == "繁體中文":
+                reasons.append(f"⚠️ 現價 (${current_price:.2f}) 高於買入上限價 (${max_buy_price:.2f})，折讓幅度不足。")
+            else:
+                reasons.append(f"⚠️ Price (${current_price:.2f}) exceeds max buy price (${max_buy_price:.2f}). Insufficient discount.")
 
         health_ok = True
         if roe and isinstance(roe, (int, float)):
