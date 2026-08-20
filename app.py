@@ -128,10 +128,6 @@ translations = {
 lang = st.radio("🌐 語言 / Language", ["繁體中文", "English"], horizontal=True)
 t = translations[lang]
 
-# --- 頂部提示：Timeframe 指引 ---
-with st.expander(t["guide_title"], expanded=False):
-    st.markdown(t["guide_content"])
-
 # --- 1. 預先宣告與預讀輸入參數，以便在輸入框出現前進行數據與休市判斷 ---
 config_mapping = {
     "15m": {"period": "7d", "interval": "15m"},
@@ -176,6 +172,10 @@ if df is not None and not df.empty and len(df) >= 2:
         st.warning(t["weekend_warn"])
     elif last_data_date < today:
         st.info(t["holiday_info"].format(today=today, last_date=last_data_date))
+
+# --- 頂部提示：Timeframe 指引 ---
+with st.expander(t["guide_title"], expanded=False):
+    st.markdown(t["guide_content"])
 
 # --- 4. 參數設定輸入欄位 ---
 col_setting1, col_setting2, col_setting3 = st.columns([2, 3, 3])
