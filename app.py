@@ -277,7 +277,7 @@ else:
     # ==========================================
     # 🎯 中間 Tab 選單 (把 AI 助手放在中間)
     # ==========================================
-    tab1, tab2, tab3 = st.tabs([t["p1_title"], t["p_assistant_title"], t["p2_title"]])
+    tab1, tab2 = st.tabs([t["p1_title"], t["p2_title"]])
 
     # --- 🥇 Tab 1：💡 估值與持股診斷 ---
     with tab1:
@@ -399,45 +399,7 @@ else:
                 for sr in sell_reasons:
                     st.write(sr)
 
-    # --- 🥈 Tab 2：💬 智能 AI 助手 (擺喺中間) ---
-    with tab2:
-        st.subheader(t["assistant_title"])
-        st.info(t["chat_hint"])
-
-        chat_history_key = f"chat_history_{symbol}"
-        if chat_history_key not in st.session_state:
-            st.session_state[chat_history_key] = []
-
-        for msg in st.session_state[chat_history_key]:
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
-
-        user_query = st.chat_input(t["chat_placeholder"])
-        if user_query:
-            st.session_state[chat_history_key].append({"role": "user", "content": user_query})
-            with st.chat_message("user"):
-                st.write(user_query)
-
-            # 簡易關鍵字 AI 應答邏輯
-            q = user_query.lower()
-            if "價" in q or "price" in q:
-                reply = f"📈 **{symbol}** 目前最新價為 **\${latest_close:.2f}**，今日變動幅度為 **{pct_change:+.2f}%**。"
-            elif "支持" in q or "support" in q or "ma" in q:
-                reply = f"🛡️ **{symbol}** 的短期支持位 (20MA) 為 **\${ma20_val:.2f}**，中期支持位 (50MA) 為 **\${ma50_val:.2f}**。"
-            elif "rsi" in q:
-                reply = f"📊 當前 RSI (14) 指標為 **{latest_rsi:.1f}**。" + (" (處於超買區域，注意回調風險)" if latest_rsi > 70 else (" (處於超賣區域，可能存在反彈機會)" if latest_rsi < 30 else " (處於中性區間)"))
-            elif "止損" in q or "止蝕" in q or "stop loss" in q:
-                reply = f"⚠️ 根據目前設定，建倉價位不同對應之止蝕觸發點會有所變化。建議維持固定風控比例（如 10%）。"
-            elif "新聞" in q or "news" in q:
-                reply = f"📰 目前共抓取到 **{news_count}** 條與 {symbol} 相關的即時新聞，您可以切換至「實時市場新聞」頁簽查看詳細列表。"
-            else:
-                reply = f"🤖 我是 {symbol} 的 AI 助手。您可以詢問關於現價、支持位 (20MA/50MA)、RSI 或新聞動態等數據。"
-
-            st.session_state[chat_history_key].append({"role": "assistant", "content": reply})
-            with st.chat_message("assistant"):
-                st.write(reply)
-
-    # --- 🥉 Tab 3：📰 實時市場新聞 ---
+    # --- 🥉 Tab 2：📰 實時市場新聞 ---
     with tab3:
         st.subheader(t["news_header"])
         if news_count > 0:
