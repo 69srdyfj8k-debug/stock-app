@@ -314,7 +314,7 @@ else:
         else:
             price_ok = False
             if lang == "繁體中文":
-                reasons.append(f"⚠️ 現價 (＄{current_price:.2f}) 高於買入上限價 (＄{max_buy_price:.2f})，折讓幅度不足。")
+                reasons.append(f"⚠️ 現價 (\${current_price:.2f}) 高於買入上限價 (\${max_buy_price:.2f})，折讓幅度不足。")
             else:
                 reasons.append(f"⚠️ Price (＄{current_price:.2f}) exceeds max buy price (＄{max_buy_price:.2f}). Insufficient discount.")
 
@@ -342,7 +342,7 @@ else:
             buy_signal, signal_color = ("🔴 建議觀望 / 暫不入手 (Wait for Dip)" if lang == "繁體中文" else "🔴 Wait for Dip"), "red"
 
         st.markdown(f"### Signal: :{signal_color}[**{buy_signal}**]")
-        st.write(f"**{t['fair_val']}** (\${fair_value:.2f}) | **{t['max_buy']}** (\${max_buy_price:.2f})")
+        st.write(f"**{t['fair_val']}** \${fair_value:.2f} | **{t['max_buy']}** \${max_buy_price:.2f}")
 
         with st.expander(t["view_buy_reasons"], expanded=True):
             for reason in reasons:
